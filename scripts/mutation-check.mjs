@@ -87,6 +87,12 @@ const MUTATIONS = [
     from: "if (staff && me && staff.id !== me.id) {",
     to: "if (false) {",
   },
+  {
+    name: "El panel muestra la transcripción en vivo de una llamada de OTRO caso",
+    file: "src/views/agent/panel.view.js",
+    from: "if (event.conversation.id === selectedId) showLiveTranscript(event.speaker, event.text);",
+    to: "showLiveTranscript(event.speaker, event.text);",
+  },
 ];
 
 function runTests() {
