@@ -183,3 +183,28 @@
     padding: var(--space-3);
   }
 }
+
+/* --- Llamadas de voz (Fase 5) --- */
+.pill--call {
+  background: var(--color-navy-100);
+  color: var(--color-navy-900);
+}
+.pill--call-waiting_agent {
+  background: var(--color-amber-100);
+  color: var(--color-amber-800);
+}
+.live-transcript {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  border-left: var(--rule) solid var(--color-amber-600);
+  background: var(--color-surface);
+  color: var(--color-ink-500);
+  font-size: var(--fs-sm);
+  font-style: italic;
+}
+.live-transcript__who {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--color-ink-900);
+}

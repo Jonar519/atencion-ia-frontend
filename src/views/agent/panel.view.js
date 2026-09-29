@@ -42,6 +42,18 @@ const STATUS = {
   closed: "Cerrada",
 };
 
+// Llamadas de voz (Fase 5). El botón "unirse" llega con la UI de voz (Fase 6).
+const CALL_STATUS = {
+  connecting: "Llamada: conectando",
+  in_progress: "Llamada en curso",
+  waiting_agent: "Llamada en espera de asesor",
+};
+const ACTIVE_CALL = Object.keys(CALL_STATUS);
+
+function activeCall(conversation) {
+  return conversation.calls?.find((call) => ACTIVE_CALL.includes(call.status)) ?? null;
+}
+
 const AVAILABILITY = [
   ["available", "Disponible"],
   ["busy", "Ocupado"],
@@ -238,7 +250,15 @@ export function agentPanelView(root, _params, deps = {}) {
 
   function renderDetail() {
     const messagesEl = h("ol", { class: "chat__messages", "aria-live": "polite", "aria-label": "Historial" });
-    replaceChildren(pane, h("header", { class: "pane__header" }), messagesEl, h("div", { class: "pane__footer" }));
+    // Transcripción EN VIVO de una llamada (lo que el STT va entendiendo antes de cerrar la frase).
+    const live = h("p", { class: "live-transcript", hidden: true, "aria-live": "polite" });
+    replaceChildren(
+      pane,
+      h("header", { class: "pane__header" }),
+      messagesEl,
+      live,
+      h("div", { class: "pane__footer" })
+    );
     updateDetailHeader();
   }
 
@@ -264,6 +284,13 @@ export function agentPanelView(root, _params, deps = {}) {
                 "span",
                 { class: "pill pill--reason" },
                 `${REASON[escalation.reason] ?? escalation.reason} · prioridad ${escalation.priority}`
+              )
+            : null,
+          activeCall(detail)
+            ? h(
+                "span",
+                { class: ["pill", "pill--call", `pill--call-${activeCall(detail).status}`] },
+                CALL_STATUS[activeCall(detail).status] ?? activeCall(detail).status
               )
             : null,
           detail.assignedAgent
@@ -387,6 +414,7 @@ export function agentPanelView(root, _params, deps = {}) {
       content: message.content,
       createdAt: message.createdAt,
       clientMsgId: message.clientMsgId ?? null,
+      channel: message.channel ?? "text",
       agent: message.agent ?? message.senderAgent ?? null,
       intent: message.intent ?? null,
       sentiment: message.sentiment ?? null,
@@ -409,9 +437,42 @@ export function agentPanelView(root, _params, deps = {}) {
     socket.start();
   }
 
+  function showLiveTranscript(speaker, text) {
+    const live = pane.querySelector(".live-transcript");
+    if (!live) return;
+    if (!text) {
+      live.hidden = true;
+      replaceChildren(live);
+      return;
+    }
+    live.hidden = false;
+    replaceChildren(
+      live,
+      h("span", { class: "live-transcript__who" }, speaker === "agent" ? "Tú (en vivo)" : "Cliente (en vivo)"),
+      " ",
+      text
+    );
+  }
+
   function onEvent(event) {
     if (event.type === "message.created") {
-      if (event.conversation.id === selectedId) store.upsert(toView(event.message));
+      if (event.conversation.id === selectedId) {
+        store.upsert(toView(event.message));
+        // La frase terminó: pasa de "en vivo" al historial.
+        if (event.message.channel === "voice") showLiveTranscript(null, "");
+      }
+      scheduleReload();
+    } else if (event.type === "call.transcript.partial") {
+      if (event.conversation.id === selectedId) showLiveTranscript(event.speaker, event.text);
+    } else if (event.type === "call.updated") {
+      if (event.conversation.id === selectedId && detail) {
+        detail = {
+          ...detail,
+          calls: [event.call, ...(detail.calls ?? []).filter((call) => call.id !== event.call.id)],
+        };
+        updateDetailHeader();
+        if (!ACTIVE_CALL.includes(event.call.status)) showLiveTranscript(null, "");
+      }
       scheduleReload();
     } else if (event.type === "conversation.updated") {
       if (event.conversation.id === selectedId && event.visible === false) {

@@ -223,3 +223,74 @@ describe("panel de agentes: cambio de cuenta en otra pestaña", () => {
     expect(reload).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("panel de agentes: llamadas de voz (Fase 5)", () => {
+  const CALL = { id: "call1", status: "waiting_agent", endReason: null };
+  const conversationRef = (id = "c1") => ({
+    id,
+    customerId: "b1",
+    status: "waiting_agent",
+    assignedAgentId: null,
+    priority: 90,
+  });
+
+  it("muestra el estado de la llamada activa del caso y lo actualiza en vivo", async () => {
+    const api = fakeStaffApi();
+    api.state.detail = { ...api.state.detail, calls: [{ id: "call1", status: "in_progress" }] };
+    const { ws } = await mount(api);
+    await openCase();
+    expect(root.querySelector(".pill--call").textContent).toBe("Llamada en curso");
+    ws.serverSend({ type: "call.updated", conversation: conversationRef(), call: CALL });
+    await flush(5);
+    expect(root.querySelector(".pill--call").textContent).toBe("Llamada en espera de asesor");
+    ws.serverSend({ type: "call.updated", conversation: conversationRef(), call: { ...CALL, status: "ended" } });
+    await flush(5);
+    expect(root.querySelector(".pill--call")).toBeNull();
+  });
+
+  it("la transcripción en vivo aparece solo para el caso abierto, como TEXTO, y pasa al historial al cerrar la frase", async () => {
+    const { ws } = await mount();
+    await openCase();
+    const live = root.querySelector(".live-transcript");
+    expect(live.hidden).toBe(true);
+
+    // De OTRO caso: no se muestra aquí.
+    ws.serverSend({
+      type: "call.transcript.partial",
+      conversation: conversationRef("otro"),
+      callId: "x",
+      speaker: "customer",
+      text: "ajeno",
+    });
+    await flush(5);
+    expect(live.hidden).toBe(true);
+
+    ws.serverSend({
+      type: "call.transcript.partial",
+      conversation: conversationRef(),
+      callId: "call1",
+      speaker: "customer",
+      text: '<img src=x onerror="alert(1)"> no reconozco',
+    });
+    await flush(5);
+    expect(live.hidden).toBe(false);
+    expect(live.textContent).toContain('Cliente (en vivo) <img src=x onerror="alert(1)"> no reconozco');
+    expect(live.querySelector("img")).toBeNull();
+
+    ws.serverSend({
+      type: "message.created",
+      conversation: conversationRef(),
+      message: {
+        id: "v1",
+        senderType: "customer",
+        channel: "voice",
+        content: "No reconozco un cargo",
+        createdAt: "2026-09-29T10:02:00Z",
+      },
+    });
+    await flush(5);
+    expect(live.hidden).toBe(true);
+    const turn = root.querySelector('[data-id="v1"]');
+    expect(turn.querySelector(".tag--voice").textContent).toBe("Voz");
+  });
+});
