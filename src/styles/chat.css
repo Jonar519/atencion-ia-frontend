@@ -8,9 +8,11 @@
   padding-top: var(--space-5);
 }
 
+/* Columna flexible (no grid): las zonas ocultas (llamada, "nueva conversación")
+   no desplazan a la lista de mensajes, que siempre ocupa el espacio libre. */
 .chat {
-  display: grid;
-  grid-template-rows: auto auto 1fr auto auto;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
   height: calc(100dvh - 3rem);
   max-height: 52rem;
@@ -61,6 +63,7 @@
   align-content: start;
   gap: var(--space-3);
   min-height: 0;
+  flex: 1;
 }
 
 .msg {

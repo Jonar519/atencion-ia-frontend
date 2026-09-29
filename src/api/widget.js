@@ -18,4 +18,13 @@ export const widgetApi = {
       { content, clientMsgId },
       { timeoutMs: AI_TIMEOUT_MS }
     ),
+  // --- Voz ---
+  voiceConsent: () => api.get("/api/widget/voice/consent"),
+  /** Solo con consentimiento: el backend exige la versión vigente del aviso y accepted: true. */
+  startCall: (conversationId, consentVersion) =>
+    api.post(`/api/widget/conversations/${encodeURIComponent(conversationId)}/calls`, {
+      consentVersion,
+      accepted: true,
+    }),
+  endCall: (callId) => api.post(`/api/widget/calls/${encodeURIComponent(callId)}/end`),
 };

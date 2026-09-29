@@ -6,6 +6,7 @@ import { renderMessageList } from "../../components/messageList.js";
 import { connectionIndicator } from "../../components/connection.js";
 import { createRealtimeClient } from "../../realtime/socket.js";
 import { createUrgencyClient } from "../../urgency/urgencyClient.js";
+import { createCustomerCallController } from "../../voice/customerCall.js";
 
 /**
  * WIDGET DEL CLIENTE (#/chat).
@@ -17,6 +18,10 @@ import { createUrgencyClient } from "../../urgency/urgencyClient.js";
  * respuesta del POST lo confirma y trae la respuesta de la IA; el WebSocket
  * también los trae (y los de un asesor): el almacén descarta duplicados.
  * Si falla, "Reintentar" reusa el MISMO clientMsgId (el backend no lo duplica).
+ *
+ * Llamada de voz (Fase 6): botón "Llamar" → aviso de consentimiento →
+ * micrófono → llamada (voice/customerCall.js). Lo que se dice aparece en el
+ * mismo historial (los turnos de voz llegan por el WebSocket de eventos).
  *
  * Todas las dependencias se inyectan para poder probar la vista completa con
  * red y WebSocket simulados (tests/customerChat.test.js).
@@ -73,6 +78,20 @@ export function customerChatView(root, _params, deps = {}) {
     "Nueva conversación"
   );
   const endButton = h("button", { class: "link-btn", type: "button", on: { click: endSession } }, "Salir");
+  const callButton = h(
+    "button",
+    { class: "btn btn--call", type: "button", hidden: true, on: { click: () => call.begin() } },
+    "Llamar"
+  );
+  const callArea = h("div", { class: "chat__call", hidden: true });
+  const call = createCustomerCallController({
+    mount: callArea,
+    widgetApi,
+    conversationId: () => conversationId,
+    conversationStatus: () => status,
+    onActiveChange: () => updateCallButton(),
+    voice: deps.voice,
+  });
 
   const shell = h(
     "section",
@@ -86,9 +105,10 @@ export function customerChatView(root, _params, deps = {}) {
         h("h1", { class: "chat__title" }, "Banco Cordillera"),
         h("p", { class: "chat__subtitle" }, "Atención al cliente")
       ),
-      h("div", { class: "chat__header-actions" }, connection.el, endButton)
+      h("div", { class: "chat__header-actions" }, connection.el, callButton, endButton)
     ),
     statusLine,
+    callArea,
     list,
     newChatButton,
     composer
@@ -211,6 +231,12 @@ export function customerChatView(root, _params, deps = {}) {
     const closed = status === "closed";
     composer.hidden = closed;
     newChatButton.hidden = !closed;
+    updateCallButton();
+  }
+
+  /** "Llamar" solo con una conversación abierta y sin otra llamada en curso en esta pestaña. */
+  function updateCallButton() {
+    callButton.hidden = !conversationId || status === "closed" || call?.active;
   }
 
   // --- Envío ---
@@ -274,6 +300,7 @@ export function customerChatView(root, _params, deps = {}) {
   }
 
   async function endSession() {
+    call.dispose();
     socket?.stop();
     await widgetApi.endSession().catch(() => {});
     store.clear();
@@ -301,6 +328,7 @@ export function customerChatView(root, _params, deps = {}) {
   return () => {
     disposed = true;
     clearTimeout(urgencyTimer);
+    call.dispose();
     socket?.stop();
     urgency.terminate();
   };
