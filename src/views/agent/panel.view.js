@@ -9,6 +9,7 @@ import { connectionIndicator } from "../../components/connection.js";
 import { toast } from "../../components/toast.js";
 import { createRealtimeClient } from "../../realtime/socket.js";
 import { navigate } from "../../router.js";
+import { createAgentCallController } from "../../voice/agentCall.js";
 
 /**
  * PANEL DE AGENTES (#/agente).
@@ -42,7 +43,7 @@ const STATUS = {
   closed: "Cerrada",
 };
 
-// Llamadas de voz (Fase 5). El botón "unirse" llega con la UI de voz (Fase 6).
+// Llamadas de voz: estado (Fase 5) y "Unirse a la llamada" con WebRTC (Fase 6, voice/agentCall.js).
 const CALL_STATUS = {
   connecting: "Llamada: conectando",
   in_progress: "Llamada en curso",
@@ -90,6 +91,24 @@ export function agentPanelView(root, _params, deps = {}) {
     AVAILABILITY.map(([value, label]) => h("option", { value }, label))
   );
   const who = h("span", { class: "topbar__who" });
+  // La llamada en curso vive fuera del detalle: sigue visible aunque el agente mire otro caso.
+  const callDock = h("div", { class: "call-dock", hidden: true });
+  const agentCall = createAgentCallController({
+    mount: callDock,
+    staffApi,
+    session,
+    voice: deps.voice,
+    onJoined: async () => {
+      tab = "mine";
+      await reloadLists();
+      if (selectedId) await reloadDetail({ keepMessages: true });
+    },
+    onEnded: () => {
+      updateDetailHeader();
+      scheduleReload();
+    },
+    onError: (message) => toast(message, { tone: "error" }),
+  });
 
   replaceChildren(
     root,
@@ -110,6 +129,7 @@ export function agentPanelView(root, _params, deps = {}) {
           h("button", { class: "link-btn", type: "button", on: { click: onLogout } }, "Salir")
         )
       ),
+      callDock,
       h(
         "nav",
         { class: "sidebar", "aria-label": "Listas de casos" },
@@ -301,6 +321,17 @@ export function agentPanelView(root, _params, deps = {}) {
       h(
         "div",
         { class: "pane__actions" },
+        canJoinCall(detail, mine)
+          ? h(
+              "button",
+              {
+                class: "btn btn--primary btn--call",
+                type: "button",
+                on: { click: () => agentCall.join(activeCall(detail).id, detail.id) },
+              },
+              "Unirse a la llamada"
+            )
+          : null,
         detail.status === "waiting_agent" && !detail.assignedAgent
           ? h("button", { class: "btn btn--primary", type: "button", on: { click: onTake } }, "Tomar caso")
           : null,
@@ -318,6 +349,15 @@ export function agentPanelView(root, _params, deps = {}) {
         h("p", { class: "muted" }, detail.status === "waiting_agent" ? "Toma el caso para responder al cliente." : "")
       );
     }
+  }
+
+  /** Hay llamada activa, no estoy ya en una, y el caso está en cola o es mío. */
+  function canJoinCall(conversation, mine) {
+    if (!activeCall(conversation) || agentCall.activeCallId) return false;
+    return (
+      (conversation.status === "waiting_agent" && !conversation.assignedAgent) ||
+      (conversation.status === "agent_active" && mine)
+    );
   }
 
   function replyForm() {
@@ -403,6 +443,7 @@ export function agentPanelView(root, _params, deps = {}) {
   }
 
   async function onLogout() {
+    agentCall.dispose();
     socket?.stop();
     await session.logout();
   }
@@ -492,6 +533,7 @@ export function agentPanelView(root, _params, deps = {}) {
 
   return () => {
     disposed = true;
+    agentCall.dispose();
     clearTimeout(refreshTimer);
     stopSessionWatch();
     socket?.stop();

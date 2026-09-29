@@ -7,9 +7,10 @@
 .panel {
   display: grid;
   grid-template-columns: minmax(16rem, 22rem) 1fr;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   grid-template-areas:
     "top top"
+    "dock dock"
     "side pane";
   height: 100dvh;
 }
@@ -169,8 +170,8 @@
 @media (max-width: 48rem) {
   .panel {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr;
-    grid-template-areas: "top" "side" "pane";
+    grid-template-rows: auto auto auto 1fr;
+    grid-template-areas: "top" "dock" "side" "pane";
     height: auto;
     min-height: 100dvh;
   }

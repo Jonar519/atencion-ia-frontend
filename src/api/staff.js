@@ -14,4 +14,9 @@ export const staffApi = {
   take: (id) => api.post(`${conv(id)}/take`, undefined, auth),
   close: (id, note) => api.post(`${conv(id)}/close`, note ? { note } : {}, auth),
   reply: (id, content, clientMsgId) => api.post(`${conv(id)}/messages`, { content, clientMsgId }, auth),
+  // --- Voz ---
+  /** Unirse: si el caso está en cola, lo toma; devuelve la transcripción acumulada. */
+  joinCall: (callId) => api.post(`/api/calls/${encodeURIComponent(callId)}/join`, undefined, auth),
+  leaveCall: (callId) => api.post(`/api/calls/${encodeURIComponent(callId)}/leave`, undefined, auth),
+  endCall: (callId) => api.post(`/api/calls/${encodeURIComponent(callId)}/end`, undefined, auth),
 };
