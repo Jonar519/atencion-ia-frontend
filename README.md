@@ -7,15 +7,18 @@ SPA de **Atención al cliente omnicanal con IA**, con dos superficies:
 - **Panel de agente** (`#/agente`): cola priorizada, historial completo (con la intención y el
   sentimiento que detectó la IA) **antes** de tomar el caso, tomar, responder y cerrar.
 
-La voz (WebRTC, transcripción en vivo) llega en la Fase 6.
+**Voz** (Fase 6, punto 1): el cliente llama desde el widget tras aceptar el aviso de
+consentimiento; el asesor se une desde el panel y hablan por WebRTC. Guía para probarlo con tu
+micrófono: [docs/prueba-voz.md](docs/prueba-voz.md).
 
 ## Estado por fase
 
-| Fase | Contenido                                                                                    | Estado    |
-| ---- | -------------------------------------------------------------------------------------------- | --------- |
-| 4    | Widget de texto, panel de agente, WebSocket, Web Worker, Service Worker, diseño              | ✅        |
-| 5    | Panel: estado de la llamada, turnos de voz marcados y transcripción EN VIVO del caso abierto | ✅        |
-| 6    | UI de voz (llamada desde el navegador, transcripción para el agente)                         | pendiente |
+| Fase | Contenido                                                                                    | Estado       |
+| ---- | -------------------------------------------------------------------------------------------- | ------------ |
+| 4    | Widget de texto, panel de agente, WebSocket, Web Worker, Service Worker, diseño              | ✅           |
+| 5    | Panel: estado de la llamada, turnos de voz marcados y transcripción EN VIVO del caso abierto | ✅           |
+| 6    | UI de voz: llamar con consentimiento, micrófono, respuesta en audio, unirse con WebRTC real  | ✅ (punto 1) |
+| 6    | Pruebas de carga, modelo de amenazas, CI, E2E con Playwright, README raíz                    | pendiente    |
 
 ## Stack
 
@@ -79,6 +82,8 @@ src/
   urgency/                 clasificador local + cliente del Worker (descarta respuestas viejas)
   workers/urgency.worker.js
   sw/                      estrategia (función pura), Service Worker y registro
+  voice/                   llamada: pcm (16 kHz), AudioWorklet, micrófono, reproductor, WebRTC,
+                           sesión del socket de voz, y los controladores del cliente y del asesor
   views/                   landing, chat del cliente, login y panel del agente
   components/              lista de mensajes, avisos, indicador de conexión
   lib/dom.js               h(): crea nodos; el texto SIEMPRE como nodo de texto
@@ -121,6 +126,23 @@ guardan en Cache Storage). Navegaciones → `index.html` con revalidación, u `o
 `/assets/*` (nombres con hash) → cache-first. `scripts/sw-build.js` inyecta la lista de precache
 en el build y **falla** si no encuentra la declaración exacta que debe reemplazar.
 
+### Voz
+
+- **Consentimiento primero:** el aviso vigente viene del backend y "Aceptar y llamar" está
+  deshabilitado hasta marcar "Leí y acepto". Se envía la versión mostrada.
+- **Micrófono antes que la llamada:** si el permiso se niega, no se crea ninguna llamada (ni el
+  asesor toma el caso).
+- **Captura:** un AudioWorklet baja el micrófono a PCM16 mono de 16 kHz, en tramas de 100 ms
+  (~32 KB/s, lo que el servidor admite en tiempo real).
+- **Qué se envía:** solo después de `ready`, nunca silenciado, y **no mientras habla el
+  asistente** (su voz no debe transcribirse como del cliente). "Interrumpir" lo corta.
+- **WebRTC entre cliente y asesor:** solo el asesor ofrece; los candidatos ICE se guardan hasta
+  tener la descripción remota. El audio va de navegador a navegador.
+- **El micrófono se apaga siempre:** al colgar, cuando el servidor termina la llamada, al salir de
+  la vista o si otra pestaña toma la llamada. En este último caso **no reconecta**: si lo hiciera,
+  las pestañas se la quitarían una a otra sin fin.
+- **Micrófono desconectado:** si se desconecta a mitad de la llamada, se avisa.
+
 ### XSS
 
 Todo el texto (mensajes de clientes, de la IA, nombres) entra al DOM como nodo de texto vía
@@ -128,14 +150,14 @@ Todo el texto (mensajes de clientes, de la IA, nombres) entra al DOM como nodo d
 
 ## Tests
 
-`npm test`: 69 tests en 9 archivos — render seguro, sesión (memoria, single-flight, reintento,
+`npm test`: 119 tests en 12 archivos — render seguro, sesión (memoria, single-flight, reintento,
 logout entre pestañas), WebSocket (auth, reconexión con backoff, resync, 4409, cierre limpio),
 store de mensajes, Worker de urgencia, Service Worker (incluye cargar el SW generado), chat del
 cliente (envío, recepción, reintento con el mismo `clientMsgId`, aislamiento por conversación) y
 panel (cola en vivo, historial antes de tomar, tomar/cerrar, caso tomado por otro, cambio de cuenta,
 estado de la llamada y transcripción en vivo solo del caso abierto, como texto).
 
-`npm run test:mutations`: 14/14 reglas críticas rotas a propósito son detectadas.
+`npm run test:mutations`: 31/31 reglas críticas rotas a propósito son detectadas.
 
 La verificación en vivo (dos pestañas, reconexión real, base de prueba aparte) está en
 [docs/fase4-verificacion.md](docs/fase4-verificacion.md). El sistema de diseño, en
