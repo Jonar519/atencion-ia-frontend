@@ -4,6 +4,7 @@ import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/chat.css";
 import "./styles/panel.css";
+import "./styles/voice.css";
 import { route, startRouter } from "./router.js";
 import { landingView } from "./views/landing.view.js";
 import { customerChatView } from "./views/customer/chat.view.js";

@@ -1,0 +1,143 @@
+/*
+ * Llamadas de voz (widget y panel). Mismo lenguaje del sistema de diseño:
+ * superficie plana con regla de color a la izquierda; el estado va escrito
+ * (el color nunca es la única pista). Contraste medido de los pares nuevos:
+ * blanco sobre red-700 7.57:1 · ink-900/navy-100 12.29:1 · green-800/surface 5.89:1.
+ */
+
+.btn--danger {
+  background: var(--color-red-700);
+  border-color: var(--color-red-700);
+  color: #fff;
+}
+.btn--danger:hover {
+  background: #7d2318;
+}
+.btn--call::before {
+  content: "📞 ";
+}
+
+/* --- Aviso de consentimiento --- */
+.consent {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: var(--rule) solid var(--color-navy-700);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-5);
+}
+.consent h2 {
+  font-size: var(--fs-md);
+}
+.consent__points {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+}
+.consent__tip {
+  font-size: var(--fs-sm);
+  color: var(--color-ink-500);
+}
+.consent__check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.consent__check input {
+  margin-top: 0.3rem;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.consent__check label {
+  margin: 0;
+}
+.consent__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+/* --- Barra de la llamada --- */
+.chat__call {
+  display: grid;
+  gap: var(--space-2);
+}
+.call-dock {
+  grid-area: dock;
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+.callbar {
+  display: grid;
+  gap: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: var(--rule) solid var(--color-green-800);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+}
+.callbar[data-state="connecting"],
+.callbar[data-state="reconnecting"],
+.callbar[data-state="waiting_agent"] {
+  border-left-color: var(--color-amber-600);
+}
+.callbar[data-state="ended"] {
+  border-left-color: var(--color-ink-500);
+}
+.callbar__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-weight: 600;
+}
+.callbar__timer {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-500);
+}
+.callbar__mic {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+}
+.callbar__mic label {
+  margin: 0;
+  font-weight: 400;
+}
+.callbar__meter {
+  width: 10rem;
+}
+.callbar__heard {
+  font-weight: 600;
+  color: var(--color-green-800);
+}
+.callbar__hint,
+.callbar__peer {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--color-ink-500);
+}
+.callbar__partial {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-style: italic;
+  background: var(--color-navy-100);
+  color: var(--color-ink-900);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius);
+}
+.callbar__who {
+  font-style: normal;
+  font-weight: 600;
+}
+.callbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.callbar__remote {
+  display: none;
+}
