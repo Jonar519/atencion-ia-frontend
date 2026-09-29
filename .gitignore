@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+coverage/
+.DS_Store
+Thumbs.db
+
+# Resultados locales de Playwright (E2E)
+test-results/
+playwright-report/
