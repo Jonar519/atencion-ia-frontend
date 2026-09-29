@@ -1,0 +1,171 @@
+/*
+ * Conversación (widget del cliente y panel). Los mensajes NO son burbujas con
+ * sombra: son bloques planos con una regla de color a la izquierda que dice
+ * quién habla (navy = cliente, ámbar = asesor, gris = asistente virtual), y
+ * además llevan el nombre escrito (el color nunca es la única pista).
+ */
+.page--chat {
+  padding-top: var(--space-5);
+}
+
+.chat {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto auto;
+  gap: var(--space-3);
+  height: calc(100dvh - 3rem);
+  max-height: 52rem;
+}
+
+.chat__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-3);
+}
+.chat__title {
+  font-size: var(--fs-lg);
+  margin: 0;
+}
+.chat__subtitle {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--color-ink-500);
+}
+.chat__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.chat__status {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--color-navy-700);
+}
+.chat__status[data-status="waiting_agent"] {
+  color: var(--color-amber-800);
+}
+.chat__status[data-status="agent_active"] {
+  color: var(--color-green-800);
+}
+
+.chat__messages {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2) 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.msg {
+  max-width: min(36rem, 88%);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: var(--rule) solid var(--color-ink-500);
+  border-radius: var(--radius);
+}
+.msg--own {
+  justify-self: end;
+}
+.msg--customer {
+  border-left-color: var(--color-navy-700);
+}
+.msg--customer.msg--own {
+  background: var(--color-navy-100);
+}
+.msg--agent {
+  border-left-color: var(--color-amber-600);
+  background: var(--color-amber-100);
+}
+.msg--ai {
+  border-left-color: var(--color-ink-500);
+}
+.msg--system {
+  justify-self: center;
+  max-width: 90%;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--color-ink-500);
+}
+.msg--pending {
+  opacity: 0.7;
+}
+.msg--failed {
+  border-left-color: var(--color-red-700);
+}
+
+.msg__author {
+  margin: 0;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--color-ink-500);
+}
+.msg__author .tag {
+  margin-left: var(--space-2);
+}
+.msg__text {
+  margin: var(--space-1) 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msg__meta {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--color-ink-500);
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.msg__state--error {
+  color: var(--color-red-700);
+  font-weight: 600;
+}
+
+.chat__composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-2);
+  align-items: end;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-3);
+}
+.chat__input {
+  font: inherit;
+  resize: vertical;
+  min-height: 2.75rem;
+  max-height: 10rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+.chat__composer .form-error,
+.chat__composer .urgency {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+/* Aviso de urgencia (calculado en el Web Worker mientras el cliente escribe). */
+.urgency {
+  font-size: var(--fs-sm);
+  padding: var(--space-2) var(--space-3);
+  border-left: var(--rule) solid var(--color-amber-600);
+  background: var(--color-amber-100);
+  color: var(--color-amber-800);
+}
+.urgency[data-level="urgente"] {
+  border-left-color: var(--color-red-700);
+  background: var(--color-red-100);
+  color: var(--color-red-700);
+  font-weight: 600;
+}

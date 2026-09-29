@@ -1,0 +1,185 @@
+/*
+ * Panel de asesores: barra superior, lista de casos a la izquierda y la
+ * conversación a la derecha. La lista es DENSA (filas, no tarjetas): un asesor
+ * compara muchos casos de un vistazo. La urgencia es una regla de color a la
+ * izquierda de cada fila + el motivo escrito.
+ */
+.panel {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "top top"
+    "side pane";
+  height: 100dvh;
+}
+
+.topbar {
+  grid-area: top;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-navy-900);
+  color: #fff;
+}
+.topbar__title {
+  color: #fff;
+  font-size: var(--fs-md);
+  margin: 0;
+}
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.topbar .conn,
+.topbar__who {
+  color: #d5dde7;
+  font-size: var(--fs-sm);
+}
+.topbar .link-btn {
+  color: #fff;
+}
+
+.sidebar {
+  grid-area: side;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+}
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--color-border);
+}
+.tab {
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: var(--space-3);
+  background: none;
+  border: 0;
+  border-bottom: var(--rule) solid transparent;
+  color: var(--color-ink-500);
+  cursor: pointer;
+}
+.tab[aria-selected="true"] {
+  color: var(--color-navy-900);
+  border-bottom-color: var(--color-amber-600);
+}
+
+.cases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+.cases__empty {
+  padding: var(--space-5);
+  color: var(--color-ink-500);
+  font-size: var(--fs-sm);
+}
+.case {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  border-left: var(--rule) solid var(--urgency-low);
+  cursor: pointer;
+}
+.case--high {
+  border-left-color: var(--urgency-high);
+}
+.case--mid {
+  border-left-color: var(--urgency-mid);
+}
+.case:hover,
+.case--selected {
+  background: var(--color-navy-100);
+}
+.case__who {
+  font-weight: 600;
+}
+.case__when {
+  font-size: var(--fs-xs);
+  color: var(--color-ink-500);
+}
+.case__reason {
+  grid-column: 1 / -1;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--color-red-700);
+}
+.case--mid .case__reason {
+  color: var(--color-amber-800);
+}
+.case--low .case__reason {
+  color: var(--color-navy-700);
+}
+.case__preview {
+  grid-column: 1 / -1;
+  font-size: var(--fs-sm);
+  color: var(--color-ink-500);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pane {
+  grid-area: pane;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 0;
+  padding: var(--space-4) var(--space-5);
+  gap: var(--space-3);
+}
+.pane__empty {
+  grid-row: 1 / -1;
+  display: grid;
+  place-items: center;
+  color: var(--color-ink-500);
+}
+.pane__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-3);
+}
+.pane__title {
+  margin: 0 0 var(--space-1);
+}
+.pane__meta {
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+.pane__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Pantallas angostas: la lista arriba, la conversación debajo. */
+@media (max-width: 48rem) {
+  .panel {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: "top" "side" "pane";
+    height: auto;
+    min-height: 100dvh;
+  }
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+    max-height: 40vh;
+  }
+  .pane {
+    padding: var(--space-3);
+  }
+}

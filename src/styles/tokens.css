@@ -1,0 +1,63 @@
+/*
+ * Sistema de diseño de Atención IA (decisiones en docs/design-system.md).
+ *
+ * Identidad: la misma paleta "navy + ámbar" del Proyecto 1, para que los
+ * proyectos de la materia se reconozcan como una marca. El lenguaje visual sí
+ * cambia: superficies planas separadas por líneas finas y una regla de color a
+ * la izquierda que codifica urgencia o remitente, en vez de tarjetas con sombra.
+ *
+ * Contraste (texto sobre su fondo, WCAG AA ≥ 4.5:1), MEDIDO con la fórmula de
+ * WCAG sobre los 20 pares que usa el CSS (el peor: ink-500 / navy-100 5.07:1):
+ *   ink-900 / bg 13.40:1 · ink-500 / surface 5.98:1 · white / navy-700 11.53:1
+ *   amber-800 / amber-100 5.21:1 · red-700 / red-100 6.15:1 · green-800 / green-100 5.27:1
+ */
+:root {
+  --color-bg: #f4f6f8;
+  --color-surface: #ffffff;
+  --color-sunken: #eceff3;
+  --color-border: #dfe3e8;
+  --color-border-strong: #c3cad4;
+
+  --color-navy-900: #16233a;
+  --color-navy-700: #1f3b57;
+  --color-navy-500: #2e5c8a;
+  --color-navy-100: #e6edf4;
+
+  --color-amber-600: #b9770e;
+  --color-amber-100: #fcf3e7;
+  --color-amber-800: #8f5b08;
+
+  --color-red-700: #9b2c1f;
+  --color-red-100: #f8e3e0;
+  --color-green-800: #197340;
+  --color-green-100: #e7f6ed;
+
+  --color-ink-900: #1f2a38;
+  --color-ink-500: #5b6472;
+
+  /* Semántica */
+  --urgency-high: var(--color-red-700);
+  --urgency-mid: var(--color-amber-600);
+  --urgency-low: var(--color-navy-500);
+  --focus: #2e5c8a;
+
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-md: 1.125rem;
+  --fs-lg: 1.375rem;
+  --fs-xl: 1.75rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --radius: 6px;
+  --rule: 3px; /* grosor de la regla de color a la izquierda */
+}
