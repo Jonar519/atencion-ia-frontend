@@ -169,3 +169,9 @@
   color: var(--color-red-700);
   font-weight: 600;
 }
+
+/* Turno de una llamada de voz. */
+.tag--voice {
+  background: var(--color-navy-100);
+  color: var(--color-navy-900);
+}

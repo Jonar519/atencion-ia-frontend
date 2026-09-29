@@ -75,13 +75,16 @@ export function renderMessage(message, { perspective = "customer", onRetry } = {
         )
       : null;
 
+  // Turno de una llamada (transcrito o sintetizado): se marca, el color nunca es la única pista.
+  const voice = message.channel === "voice" ? h("span", { class: "tag tag--voice" }, "Voz") : null;
+
   return h(
     "li",
     {
       class: ["msg", `msg--${sender}`, own && "msg--own", message.state && `msg--${message.state}`],
       dataset: { id: message.id },
     },
-    h("p", { class: "msg__author" }, authorLabel(message, perspective), analysis),
+    h("p", { class: "msg__author" }, authorLabel(message, perspective), voice, analysis),
     h("p", { class: "msg__text" }, message.content),
     h("p", { class: "msg__meta" }, meta)
   );
