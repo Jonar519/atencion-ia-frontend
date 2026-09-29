@@ -11,10 +11,11 @@ La voz (WebRTC, transcripción en vivo) llega en la Fase 6.
 
 ## Estado por fase
 
-| Fase | Contenido                                                                       | Estado    |
-| ---- | ------------------------------------------------------------------------------- | --------- |
-| 4    | Widget de texto, panel de agente, WebSocket, Web Worker, Service Worker, diseño | ✅        |
-| 6    | UI de voz (llamada desde el navegador, transcripción para el agente)            | pendiente |
+| Fase | Contenido                                                                                    | Estado    |
+| ---- | -------------------------------------------------------------------------------------------- | --------- |
+| 4    | Widget de texto, panel de agente, WebSocket, Web Worker, Service Worker, diseño              | ✅        |
+| 5    | Panel: estado de la llamada, turnos de voz marcados y transcripción EN VIVO del caso abierto | ✅        |
+| 6    | UI de voz (llamada desde el navegador, transcripción para el agente)                         | pendiente |
 
 ## Stack
 
@@ -127,13 +128,14 @@ Todo el texto (mensajes de clientes, de la IA, nombres) entra al DOM como nodo d
 
 ## Tests
 
-`npm test`: 67 tests en 9 archivos — render seguro, sesión (memoria, single-flight, reintento,
+`npm test`: 69 tests en 9 archivos — render seguro, sesión (memoria, single-flight, reintento,
 logout entre pestañas), WebSocket (auth, reconexión con backoff, resync, 4409, cierre limpio),
 store de mensajes, Worker de urgencia, Service Worker (incluye cargar el SW generado), chat del
 cliente (envío, recepción, reintento con el mismo `clientMsgId`, aislamiento por conversación) y
-panel (cola en vivo, historial antes de tomar, tomar/cerrar, caso tomado por otro, cambio de cuenta).
+panel (cola en vivo, historial antes de tomar, tomar/cerrar, caso tomado por otro, cambio de cuenta,
+estado de la llamada y transcripción en vivo solo del caso abierto, como texto).
 
-`npm run test:mutations`: 13/13 reglas críticas rotas a propósito son detectadas.
+`npm run test:mutations`: 14/14 reglas críticas rotas a propósito son detectadas.
 
 La verificación en vivo (dos pestañas, reconexión real, base de prueba aparte) está en
 [docs/fase4-verificacion.md](docs/fase4-verificacion.md). El sistema de diseño, en
