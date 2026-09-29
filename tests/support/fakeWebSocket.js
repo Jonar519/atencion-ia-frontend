@@ -8,6 +8,9 @@ export class FakeWebSocket {
   constructor(url) {
     this.url = url;
     this.sent = [];
+    /** Tramas binarias (audio) enviadas por el cliente. */
+    this.binary = [];
+    this.binaryType = "blob";
     this.listeners = {};
     this.readyState = 0;
     FakeWebSocket.instances.push(this);
@@ -18,7 +21,8 @@ export class FakeWebSocket {
   }
 
   send(data) {
-    this.sent.push(JSON.parse(data));
+    if (typeof data === "string") this.sent.push(JSON.parse(data));
+    else this.binary.push(data);
   }
 
   close(code = 1000) {
@@ -32,6 +36,9 @@ export class FakeWebSocket {
   }
   serverSend(message) {
     this.emit("message", { data: JSON.stringify(message) });
+  }
+  serverSendBinary(arrayBuffer) {
+    this.emit("message", { data: arrayBuffer });
   }
   serverClose(code = 1006) {
     if (this.readyState === 3) return;
