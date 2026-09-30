@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -33,10 +33,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
       - name: npm audit (dependencias de producción)
@@ -87,23 +87,23 @@ jobs:
       LOG_LEVEL: warn
       CORS_ORIGIN: http://localhost:4175
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # Repos hermanos (públicos; si fueran privados: secret SIBLING_REPOS_TOKEN).
       - name: Checkout de atencion-ia-backend
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ github.repository_owner }}/atencion-ia-backend
           ref: ${{ vars.BACKEND_REPO_REF || 'main' }}
           token: ${{ secrets.SIBLING_REPOS_TOKEN || github.token }}
           path: _backend
       - name: Checkout de atencion-ia-database
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ github.repository_owner }}/atencion-ia-database
           ref: ${{ vars.DATABASE_REPO_REF || 'main' }}
           token: ${{ secrets.SIBLING_REPOS_TOKEN || github.token }}
           path: _database
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
       - name: Migraciones y seed
