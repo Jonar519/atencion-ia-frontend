@@ -3,7 +3,7 @@ import globals from "globals";
 import prettier from "eslint-config-prettier";
 
 export default [
-  { ignores: ["dist/", "node_modules/", "coverage/"] },
+  { ignores: ["dist/", "node_modules/", "coverage/", "test-results/", "playwright-report/", "e2e/.generated/"] },
   js.configs.recommended,
   {
     languageOptions: { ecmaVersion: 2024, sourceType: "module", globals: { ...globals.browser } },
@@ -23,7 +23,7 @@ export default [
     languageOptions: { globals: { ...globals.serviceworker, ...globals.worker, __PRECACHE_URLS__: "readonly" } },
   },
   {
-    files: ["vite.config.js", "scripts/**", "eslint.config.js"],
+    files: ["vite.config.js", "scripts/**", "eslint.config.js", "playwright.config.js"],
     languageOptions: { globals: { ...globals.node } },
   },
   {
@@ -31,6 +31,11 @@ export default [
     files: ["tests/**"],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
     rules: { "no-restricted-properties": "off" },
+  },
+  {
+    // E2E: código de Node que además evalúa funciones dentro de la página (page.evaluate).
+    files: ["e2e/**"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   prettier,
 ];

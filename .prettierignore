@@ -2,3 +2,6 @@ node_modules/
 dist/
 coverage/
 package-lock.json
+test-results/
+playwright-report/
+e2e/.generated/

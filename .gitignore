@@ -11,3 +11,6 @@ Thumbs.db
 # Resultados locales de Playwright (E2E)
 test-results/
 playwright-report/
+
+# Audio generado para el micrófono falso del E2E
+e2e/.generated/
