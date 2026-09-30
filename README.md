@@ -13,12 +13,12 @@ micrófono: [docs/prueba-voz.md](docs/prueba-voz.md).
 
 ## Estado por fase
 
-| Fase | Contenido                                                                                    | Estado       |
-| ---- | -------------------------------------------------------------------------------------------- | ------------ |
-| 4    | Widget de texto, panel de agente, WebSocket, Web Worker, Service Worker, diseño              | ✅           |
-| 5    | Panel: estado de la llamada, turnos de voz marcados y transcripción EN VIVO del caso abierto | ✅           |
-| 6    | UI de voz: llamar con consentimiento, micrófono, respuesta en audio, unirse con WebRTC real  | ✅ (punto 1) |
-| 6    | Pruebas de carga, modelo de amenazas, CI, E2E con Playwright, README raíz                    | pendiente    |
+| Fase | Contenido                                                                                    | Estado |
+| ---- | -------------------------------------------------------------------------------------------- | ------ |
+| 4    | Widget de texto, panel de agente, WebSocket, Web Worker, Service Worker, diseño              | ✅     |
+| 5    | Panel: estado de la llamada, turnos de voz marcados y transcripción EN VIVO del caso abierto | ✅     |
+| 6    | UI de voz: llamar con consentimiento, micrófono, respuesta en audio, unirse con WebRTC real  | ✅     |
+| 6    | E2E con Playwright (texto y voz) y GitHub Actions                                            | ✅     |
 
 ## Stack
 
@@ -67,6 +67,8 @@ Si el backend está en otro puerto: `copy .env.example .env` y cambia `VITE_BACK
 | `npm run test:mutations` | Rompe a propósito cada regla crítica y exige que algún test falle         |
 | `npm run lint`           | ESLint + Prettier (`npm run format` corrige el formato)                   |
 | `scripts\verify.bat`     | lint → tests → build, deteniéndose en el primer fallo                     |
+| `scripts\e2e.bat`        | E2E completo en un entorno aislado ([e2e/README.md](e2e/README.md))       |
+| `npm run test:e2e`       | Solo Playwright (con el entorno ya levantado)                             |
 
 ## Arquitectura
 
@@ -156,6 +158,17 @@ store de mensajes, Worker de urgencia, Service Worker (incluye cargar el SW gene
 cliente (envío, recepción, reintento con el mismo `clientMsgId`, aislamiento por conversación) y
 panel (cola en vivo, historial antes de tomar, tomar/cerrar, caso tomado por otro, cambio de cuenta,
 estado de la llamada y transcripción en vivo solo del caso abierto, como texto).
+
+**E2E** (`e2e/`, Playwright): dos escenarios con cliente y asesor en dos navegadores a la vez, contra
+el stack real con IA y voz simuladas.
+
+- **Flujo de texto:** RAG → escalamiento → cola en tiempo real → tomar, responder y cerrar. Incluye
+  axe, 0 violaciones de CSP y ningún token en el almacenamiento.
+- **Llamada de voz:** micrófono falso de Chromium → transcripción → escalamiento → el asesor se une
+  con WebRTC conectado.
+
+**CI** (`.github/workflows/ci.yml`): lint, tests, mutaciones y build; `npm audit` y gitleaks; y el
+E2E completo (Postgres y Redis de servicio, backend y base de sus repos, build y `vite preview`).
 
 `npm run test:mutations`: 31/31 reglas críticas rotas a propósito son detectadas.
 
