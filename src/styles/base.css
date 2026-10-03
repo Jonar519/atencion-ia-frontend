@@ -58,6 +58,16 @@ a {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
+/*
+ * El router enfoca el <h1> de cada pantalla (tabindex="-1") para que el lector de
+ * pantalla anuncie dónde se está. No es un control: no necesita contorno (Chrome lo
+ * mostraba al cargar sin que nadie usara el teclado). Todo lo que se OPERA con teclado
+ * conserva su contorno de foco.
+ */
+[tabindex="-1"]:focus,
+[tabindex="-1"]:focus-visible {
+  outline: none;
+}
 
 .sr-only {
   position: absolute;
@@ -75,8 +85,8 @@ a {
   position: absolute;
   left: var(--space-3);
   top: -3rem;
-  background: var(--color-navy-900);
-  color: #fff;
+  background: var(--color-chrome);
+  color: var(--color-on-chrome);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius);
   z-index: 10;
@@ -118,12 +128,12 @@ a {
   background: var(--color-sunken);
 }
 .btn--primary {
-  background: var(--color-navy-700);
-  border-color: var(--color-navy-700);
-  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
 }
 .btn--primary:hover {
-  background: var(--color-navy-900);
+  background: var(--color-primary-hover);
 }
 .btn:disabled {
   opacity: 0.6;
@@ -231,8 +241,8 @@ label {
   max-width: min(24rem, calc(100vw - 2rem));
 }
 .toast {
-  background: var(--color-navy-900);
-  color: #fff;
+  background: var(--color-chrome);
+  color: var(--color-on-chrome);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius);
   border-left: var(--rule) solid var(--color-amber-600);
@@ -240,7 +250,7 @@ label {
 }
 .toast--danger,
 .toast--error {
-  border-left-color: #f0877a;
+  border-left-color: var(--color-chrome-danger);
 }
 
 /* --- Páginas simples --- */
@@ -285,4 +295,26 @@ label {
 .start .btn {
   margin-top: var(--space-5);
   width: 100%;
+}
+
+/* Aviso de conectividad (D2): UNO solo, abajo al centro, sin animación. */
+.connectivity {
+  position: fixed;
+  left: 50%;
+  top: var(--space-3);
+  transform: translateX(-50%);
+  z-index: 30;
+  max-width: min(32rem, calc(100vw - 2rem));
+  background: var(--color-chrome);
+  color: var(--color-on-chrome);
+  border-left: var(--rule) solid var(--color-amber-600);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-sm);
+}
+.connectivity--offline {
+  border-left-color: var(--color-chrome-danger);
+}
+.connectivity--restored {
+  border-left-color: var(--color-on-chrome-muted);
 }

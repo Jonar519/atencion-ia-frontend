@@ -16,7 +16,7 @@
   --color-surface: #ffffff;
   --color-sunken: #eceff3;
   --color-border: #dfe3e8;
-  --color-border-strong: #c3cad4;
+  --color-border-strong: #78839a; /* borde de campos: ≥ 3:1 sobre surface, bg y sunken (WCAG 1.4.11) */
 
   --color-navy-900: #16233a;
   --color-navy-700: #1f3b57;
@@ -34,6 +34,35 @@
 
   --color-ink-900: #1f2a38;
   --color-ink-500: #5b6472;
+
+  /*
+   * Superficies "fuertes" (barra superior, avisos, botón principal/peligro):
+   * tokens propios porque en el tema oscuro NO se invierten como el resto.
+   */
+  --color-chrome: #16233a;
+  --color-on-chrome: #ffffff;
+  --color-on-chrome-muted: #d5dde7;
+  --color-chrome-danger: #f0877a;
+  --color-primary: #1f3b57;
+  --color-primary-hover: #16233a;
+  --color-on-primary: #ffffff;
+  --color-danger: #9b2c1f;
+  --color-danger-hover: #7d2318;
+
+  /*
+   * ACENTO "EN VIVO" (Fase 7, D1): SOLO en componentes de llamada (voice.css; un
+   * test lo exige). Cian = llamada en curso; menta = asesor conectado. Sobre
+   * blanco NO alcanzan 3:1 (cian 2,18; menta 2,71): por eso viven sobre la
+   * superficie oscura de la llamada (≥ 5,8:1) o como relleno con texto navy.
+   */
+  --color-live-call: #00c2d1;
+  --color-live-agent: #00b37e;
+  --color-on-live: #0b1626;
+  --color-live-surface: #16233a;
+  --color-on-live-surface: #ffffff;
+  --color-on-live-surface-muted: #c3cedb;
+
+  color-scheme: light;
 
   /* Semántica */
   --urgency-high: var(--color-red-700);
@@ -60,4 +89,56 @@
 
   --radius: 6px;
   --rule: 3px; /* grosor de la regla de color a la izquierda */
+}
+
+/*
+ * TEMA OSCURO (Fase 7). Se activa con data-theme="dark" en <html>
+ * (src/theme.js: preferencia del perfil, o la del sistema si es "system").
+ * Misma identidad navy + ámbar: los fondos pasan a navy muy oscuro y los
+ * tonos de texto "-700/-800" se aclaran para mantener AA sobre sus fondos.
+ * Contraste MEDIDO (fórmula WCAG) en tests/contrast.test.js, par por par.
+ */
+:root[data-theme="dark"] {
+  --color-bg: #0e1522;
+  --color-surface: #152033;
+  --color-sunken: #1c2a40;
+  --color-border: #2b3b53;
+  --color-border-strong: #6f84a3;
+
+  --color-navy-900: #e6edf4;
+  --color-navy-700: #a9c3de;
+  --color-navy-500: #8db6e0;
+  --color-navy-100: #1f3350;
+
+  --color-amber-600: #e0a23a;
+  --color-amber-100: #3a2b12;
+  --color-amber-800: #f3c774;
+
+  --color-red-700: #f4a79b;
+  --color-red-100: #43201b;
+  --color-green-800: #74d6a0;
+  --color-green-100: #14352a;
+
+  --color-ink-900: #e7ecf2;
+  --color-ink-500: #a6b2c1;
+
+  --color-chrome: #080e19;
+  --color-on-chrome: #ffffff;
+  --color-on-chrome-muted: #c3cedb;
+  --color-chrome-danger: #f0877a;
+  --color-primary: #2e5c8a;
+  --color-primary-hover: #3a6d9f;
+  --color-on-primary: #ffffff;
+  --color-danger: #a8321f;
+  --color-danger-hover: #8c2a1a;
+
+  --focus: #8db6e0;
+  --color-live-call: #00c2d1;
+  --color-live-agent: #00b37e;
+  --color-on-live: #0b1626;
+  --color-live-surface: #080e19;
+  --color-on-live-surface: #ffffff;
+  --color-on-live-surface-muted: #c3cedb;
+
+  color-scheme: dark;
 }
