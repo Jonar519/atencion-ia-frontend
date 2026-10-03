@@ -16,3 +16,11 @@ export function waitingFor(iso, now = Date.now()) {
   const hours = Math.floor(minutes / 60);
   return hours < 24 ? `hace ${hours} h` : `hace ${Math.floor(hours / 24)} d`;
 }
+
+const dateTimeFormat = new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short" });
+
+/** "30 sept 2026, 10:32 a. m." (panel de sesiones). */
+export function formatDateTime(iso) {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "" : dateTimeFormat.format(date);
+}

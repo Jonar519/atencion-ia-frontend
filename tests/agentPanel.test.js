@@ -122,6 +122,29 @@ describe("panel de agentes", () => {
     expect(root.querySelector(".case__reason").textContent).toBe("Posible fraude");
   });
 
+  it("la prioridad se lee con palabra JUNTO al número (en la cola y en el detalle), no solo con color", async () => {
+    await mount();
+    expect(root.querySelector(".case .prio").textContent).toBe("Urgente · 90");
+    expect(root.querySelector(".case .prio").classList.contains("prio--high")).toBe(true);
+    await openCase();
+    expect(root.querySelector(".pane__meta").textContent).toContain("prioridad Urgente · 90");
+  });
+
+  it("un asesor NO ve la navegación de administración; un admin sí", async () => {
+    await mount();
+    expect(root.querySelector(".admin-nav")).toBeNull();
+    cleanup();
+    root.remove();
+    FakeWebSocket.reset();
+    await mount(fakeStaffApi(), fakeSession({ ...LAURA, role: "admin" }));
+    expect([...root.querySelectorAll(".admin-nav a")].map((a) => a.getAttribute("href"))).toEqual([
+      "#/admin/kb",
+      "#/admin/respuestas",
+      "#/admin/equipo",
+      "#/admin/analytics",
+    ]);
+  });
+
   it("deja leer el historial completo (con el análisis de la IA) ANTES de tomar el caso; sin caja de respuesta", async () => {
     await mount();
     await openCase();
