@@ -178,3 +178,16 @@
   background: var(--color-navy-100);
   color: var(--color-navy-900);
 }
+
+/* Estados del chat (D2): cargando, error con "Reintentar" y conversación vacía. */
+.chat__state,
+.chat__empty {
+  list-style: none;
+  padding: var(--space-3) 0;
+}
+.chat__examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}

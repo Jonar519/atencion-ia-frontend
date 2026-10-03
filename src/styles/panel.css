@@ -22,11 +22,11 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-5);
-  background: var(--color-navy-900);
-  color: #fff;
+  background: var(--color-chrome);
+  color: var(--color-on-chrome);
 }
 .topbar__title {
-  color: #fff;
+  color: var(--color-on-chrome);
   font-size: var(--fs-md);
   margin: 0;
 }
@@ -38,11 +38,11 @@
 }
 .topbar .conn,
 .topbar__who {
-  color: #d5dde7;
+  color: var(--color-on-chrome-muted);
   font-size: var(--fs-sm);
 }
 .topbar .link-btn {
-  color: #fff;
+  color: var(--color-on-chrome);
 }
 
 .sidebar {
@@ -208,4 +208,43 @@
   font-style: normal;
   font-weight: 600;
   color: var(--color-ink-900);
+}
+
+/* Ánimo del cliente en vivo (D1): texto + color, sin animación. Pares medidos en tests/contrast.test.js. */
+.sentiment {
+  display: inline-block;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius);
+}
+.sentiment--positive {
+  background: var(--color-green-100);
+  color: var(--color-green-800);
+}
+.sentiment--neutral {
+  background: var(--color-navy-100);
+  color: var(--color-navy-900);
+}
+.sentiment--negative {
+  background: var(--color-amber-100);
+  color: var(--color-amber-800);
+}
+.sentiment--angry {
+  background: var(--color-red-100);
+  color: var(--color-red-700);
+}
+
+/* Estados de las listas y del caso (D2). */
+.cases__status {
+  padding: var(--space-3) var(--space-4);
+}
+.cases__banner {
+  padding: var(--space-2) var(--space-3) 0;
+}
+.cases__banner .state--error {
+  font-size: var(--fs-sm);
+}
+.pane__loading {
+  padding: var(--space-5);
 }

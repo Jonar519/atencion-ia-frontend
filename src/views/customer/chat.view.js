@@ -3,7 +3,20 @@ import { newClientMsgId } from "../../lib/ids.js";
 import { widgetApi as defaultWidgetApi } from "../../api/widget.js";
 import { createMessageStore } from "../../chat/messageStore.js";
 import { renderMessageList } from "../../components/messageList.js";
+import { createAttachPicker, localAttachment } from "../../components/attachPicker.js";
+import { createAttachmentCache } from "../../components/attachmentView.js";
+import { ATTACHMENT_PLACEHOLDER } from "../../lib/attachments.js";
+import { createSendQueue } from "../../lib/sendQueue.js";
+import { emptyState, errorState, loadingState } from "../../components/states.js";
+
+/** Ejemplos del estado vacío: un clic los ESCRIBE en la caja (no los envía). */
+export const EXAMPLE_QUESTIONS = [
+  "¿Cuál es el horario de las oficinas?",
+  "No reconozco un cargo en mi tarjeta",
+  "Quiero hablar con un asesor",
+];
 import { connectionIndicator } from "../../components/connection.js";
+import { connectivity as defaultConnectivity } from "../../components/connectivity.js";
 import { createRealtimeClient } from "../../realtime/socket.js";
 import { createUrgencyClient } from "../../urgency/urgencyClient.js";
 import { createCustomerCallController } from "../../voice/customerCall.js";
@@ -42,6 +55,14 @@ export function customerChatView(root, _params, deps = {}) {
   const urgency = deps.urgencyClient ?? createUrgencyClient();
   const store = createMessageStore();
   const connection = connectionIndicator();
+  const notice = deps.connectivity ?? defaultConnectivity();
+  // Adjuntos (bloque C): selector en la caja de escritura y caché de los archivos ya mostrados.
+  const attach = createAttachPicker({ prepare: deps.prepareAttachment, id: "chat-attach" });
+  const attachments = createAttachmentCache((attachment) => widgetApi.attachment(attachment.id));
+  // Archivos de envíos fallidos, para reintentar con el MISMO clientMsgId.
+  const unsent = new Map();
+  // Envíos en fila: el orden del chat es el orden en que se enviaron.
+  const enqueue = createSendQueue();
 
   let conversationId = null;
   let status = "ai_active";
@@ -66,9 +87,11 @@ export function customerChatView(root, _params, deps = {}) {
   const composer = h(
     "form",
     { class: "chat__composer", on: { submit: onSubmit } },
+    attach.preview,
     h("label", { class: "sr-only", for: "chat-input" }, "Tu mensaje"),
     textarea,
-    sendButton,
+    h("div", { class: "chat__composer-actions" }, attach.input, attach.button, sendButton),
+    attach.error,
     urgencyHint,
     errorLine
   );
@@ -114,7 +137,13 @@ export function customerChatView(root, _params, deps = {}) {
     composer
   );
 
-  store.subscribe((messages) => renderMessageList(list, messages, { perspective: "customer", onRetry: retry }));
+  // "loading" mientras se abre la conversación; "error" si falló; "ready" con la conversación.
+  let viewState = "loading";
+  store.subscribe((messages) => {
+    if (viewState !== "ready") return;
+    if (!messages.length) return renderEmpty();
+    renderMessageList(list, messages, { perspective: "customer", onRetry: retry, attachments });
+  });
   textarea.addEventListener("input", onDraft);
   textarea.addEventListener("keydown", (event) => {
     // Enter envía; Shift+Enter hace salto de línea.
@@ -136,6 +165,42 @@ export function customerChatView(root, _params, deps = {}) {
       return showFatal(err);
     }
     await openLatestConversation();
+  }
+
+  /** Conversación nueva sin mensajes: qué se puede preguntar (los ejemplos se escriben, no se envían). */
+  function renderEmpty() {
+    replaceChildren(
+      list,
+      h(
+        "li",
+        { class: "chat__empty" },
+        emptyState(
+          "¿En qué te podemos ayudar?",
+          "Escribe tu pregunta. Te responde el asistente virtual y, si lo necesitas, un asesor. Por ejemplo:",
+          h(
+            "div",
+            { class: "chat__examples" },
+            EXAMPLE_QUESTIONS.map((question) =>
+              h(
+                "button",
+                {
+                  class: "btn btn--small",
+                  type: "button",
+                  on: {
+                    click: () => {
+                      textarea.value = question;
+                      textarea.focus();
+                      onDraft();
+                    },
+                  },
+                },
+                question
+              )
+            )
+          )
+        )
+      )
+    );
   }
 
   function showStart() {
@@ -178,12 +243,34 @@ export function customerChatView(root, _params, deps = {}) {
   }
 
   async function openLatestConversation() {
-    const { items } = await widgetApi.conversations();
-    const open = items.find((conversation) => conversation.status !== "closed");
-    const conversation = open ?? (await widgetApi.newConversation());
-    conversationId = conversation.id;
-    setStatus(conversation.status);
-    await loadMessages();
+    viewState = "loading";
+    replaceChildren(list, h("li", { class: "chat__state" }, loadingState("Abriendo tu conversación", { lines: 3 })));
+    composer.hidden = true;
+    try {
+      const { items } = await widgetApi.conversations();
+      const open = items.find((conversation) => conversation.status !== "closed");
+      const conversation = open ?? (await widgetApi.newConversation());
+      conversationId = conversation.id;
+      setStatus(conversation.status);
+      const { items: messages } = await widgetApi.messages(conversationId);
+      if (disposed) return;
+      viewState = "ready";
+      store.upsert(messages);
+      if (!messages.length) renderEmpty();
+    } catch (err) {
+      if (disposed) return;
+      viewState = "error";
+      // Reintentar vuelve a pedir SOLO la conversación: no recarga la página.
+      replaceChildren(
+        list,
+        h(
+          "li",
+          { class: "chat__state" },
+          errorState(`No pudimos abrir tu conversación. ${err.message}`, () => openLatestConversation())
+        )
+      );
+      return;
+    }
     connectRealtime();
     textarea.focus();
   }
@@ -199,7 +286,11 @@ export function customerChatView(root, _params, deps = {}) {
       // La cookie httpOnly del widget viaja sola en el upgrade: el mensaje de auth va sin token.
       authMessage: async () => ({ type: "auth" }),
       onEvent,
-      onStatus: (next) => connection.set(next),
+      onStatus: (next) => {
+        connection.set(next);
+        // Aviso de conectividad de la pestaña (uno solo, compartido por las vistas).
+        notice.socketStatus("chat", next);
+      },
       // Tras una reconexión, se recupera lo que llegó mientras el socket estuvo caído.
       onResync: () => loadMessages().catch(() => {}),
     });
@@ -221,11 +312,14 @@ export function customerChatView(root, _params, deps = {}) {
       createdAt: message.createdAt,
       clientMsgId: message.clientMsgId ?? null,
       agentName: message.agent?.name ?? message.agentName ?? null,
+      attachment: message.attachment ?? null,
     };
   }
 
   function setStatus(next) {
+    const previous = status;
     status = next;
+    call?.conversationStatusChanged?.(previous, next);
     statusLine.textContent = STATUS_TEXT[status] ?? "";
     statusLine.dataset.status = status;
     const closed = status === "closed";
@@ -243,22 +337,41 @@ export function customerChatView(root, _params, deps = {}) {
   async function onSubmit(event) {
     event.preventDefault();
     const content = textarea.value.trim();
-    if (!content || !conversationId) return;
+    const file = attach.pending;
+    if ((!content && !file) || !conversationId) return;
     textarea.value = "";
     hideUrgency();
     const clientMsgId = newClientMsgId();
-    store.addPending({ clientMsgId, content, sender: "customer" });
-    await send(clientMsgId, content);
+    if (file) {
+      attach.take();
+      unsent.set(clientMsgId, file);
+      store.addPending({
+        clientMsgId,
+        content: content || ATTACHMENT_PLACEHOLDER,
+        sender: "customer",
+        attachment: localAttachment(file),
+      });
+    } else {
+      store.addPending({ clientMsgId, content, sender: "customer" });
+    }
+    await enqueue(() => send(clientMsgId, content));
   }
 
   async function send(clientMsgId, content) {
     errorLine.hidden = true;
+    const file = unsent.get(clientMsgId);
     try {
-      const result = await widgetApi.send(conversationId, content, clientMsgId);
+      // Con adjunto, el texto va como comentario (puede estar vacío).
+      const result = file
+        ? await widgetApi.sendAttachment(conversationId, file, { caption: content, clientMsgId })
+        : await widgetApi.send(conversationId, content, clientMsgId);
+      unsent.delete(clientMsgId);
       store.upsert([result.message, result.reply].filter(Boolean));
       setStatus(result.conversationStatus);
     } catch (err) {
-      store.markFailed(clientMsgId, err.status === 429 ? err.message : "No se envió.");
+      // Errores del archivo (tipo, tamaño, PDF con scripts): el mensaje del servidor dice qué pasó.
+      const fileProblem = file && [413, 415, 422].includes(err.status);
+      store.markFailed(clientMsgId, err.status === 429 || fileProblem ? err.message : "No se envió.");
       if (err.status === 409) showError(err.message);
     }
   }
@@ -266,7 +379,7 @@ export function customerChatView(root, _params, deps = {}) {
   /** Reintento: MISMO clientMsgId (el backend reconoce el mensaje y no lo duplica). */
   function retry(message) {
     store.markPending(message.clientMsgId);
-    send(message.clientMsgId, message.content);
+    enqueue(() => send(message.clientMsgId, message.content === ATTACHMENT_PLACEHOLDER ? "" : message.content));
   }
 
   // --- Urgencia local (Web Worker) ---
@@ -293,10 +406,15 @@ export function customerChatView(root, _params, deps = {}) {
   // --- Otros ---
   async function startNewConversation() {
     store.clear();
-    const conversation = await widgetApi.newConversation();
-    conversationId = conversation.id;
-    setStatus(conversation.status);
-    connectRealtime();
+    try {
+      const conversation = await widgetApi.newConversation();
+      conversationId = conversation.id;
+      setStatus(conversation.status);
+      renderEmpty();
+      connectRealtime();
+    } catch (err) {
+      showError(`No se pudo empezar una conversación nueva. ${err.message}`);
+    }
   }
 
   async function endSession() {
@@ -313,23 +431,30 @@ export function customerChatView(root, _params, deps = {}) {
     errorLine.hidden = false;
   }
 
+  /** No se pudo ni consultar la sesión: el chat se oculta y "Reintentar" vuelve a arrancar (sin recargar). */
   function showFatal(err) {
-    replaceChildren(
-      root,
-      h(
-        "main",
-        { class: "page page--chat" },
-        h("h1", {}, "No pudimos abrir el chat"),
-        h("p", { role: "alert" }, err.message)
-      )
+    shell.hidden = true;
+    root.querySelector(".chat__fatal")?.remove();
+    const fatal = h(
+      "section",
+      { class: "chat__fatal" },
+      h("h1", {}, "No pudimos abrir el chat"),
+      errorState(err.message, () => {
+        fatal.remove();
+        shell.hidden = false;
+        boot();
+      })
     );
+    root.querySelector("main").append(fatal);
   }
 
   return () => {
     disposed = true;
+    notice.socketStatus("chat", "closed");
     clearTimeout(urgencyTimer);
     call.dispose();
     socket?.stop();
     urgency.terminate();
+    attachments.dispose();
   };
 }
