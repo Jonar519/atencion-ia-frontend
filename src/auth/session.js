@@ -94,17 +94,78 @@ async function post(path, body) {
 
 export class LoginError extends Error {}
 
-export async function login(email, password) {
+async function authStep(path, body) {
   let response;
   try {
-    response = await post("login", { email, password });
+    response = await post(path, body);
   } catch {
     throw new LoginError("No se pudo conectar con el servidor. Revisa tu conexión.");
   }
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new LoginError(data.error || `No se pudo iniciar sesión (${response.status})`);
+  if (!response.ok) {
+    const detail =
+      Array.isArray(data.details) && data.details.length
+        ? `: ${data.details.map((d) => (typeof d === "string" ? d : d.message)).join("; ")}`
+        : "";
+    throw new LoginError((data.error || `No se pudo iniciar sesión (${response.status})`) + detail);
+  }
+  return data;
+}
+
+function finish(data) {
   setSession(data.accessToken, data.staff, "login");
-  return data.staff;
+  return data;
+}
+
+/**
+ * Paso 1 (correo + contraseña). Resuelve con UNO de:
+ *  - { staff }: sesión iniciada (cuenta sin verificación en dos pasos).
+ *  - { mfaRequired: true, challengeToken }: falta el código (verifyMfa).
+ *  - { mfaEnrollmentRequired: true, enrollmentToken }: admin sin MFA, debe activarla
+ *    (startEnrollment → confirmEnrollment).
+ * Los tokens de estos pasos son de un solo uso y viven solo en la vista del login.
+ */
+export async function login(email, password) {
+  const data = await authStep("login", { email, password });
+  if (data.accessToken) return { staff: finish(data).staff };
+  return data;
+}
+
+/** Paso 2: código de la app (6 dígitos) o de respaldo. Resuelve con { staff, backupCodesRemaining? }. */
+export async function verifyMfa(challengeToken, code) {
+  const data = finish(await authStep("mfa/verify", { challengeToken, code }));
+  return { staff: data.staff, backupCodesRemaining: data.backupCodesRemaining };
+}
+
+/** Enrolamiento obligatorio: { qrDataUrl, secret, otpauthUrl }. */
+export function startEnrollment(enrollmentToken) {
+  return authStep("mfa/enroll/start", { enrollmentToken });
+}
+
+/** Confirma con un código y abre la sesión. Resuelve con { staff, backupCodes } (se muestran UNA vez). */
+export async function confirmEnrollment(enrollmentToken, code) {
+  const data = finish(await authStep("mfa/enroll/confirm", { enrollmentToken, code }));
+  return { staff: data.staff, backupCodes: data.backupCodes };
+}
+
+/** Recuperación y confirmación de correo (sin sesión). Resuelven con { message }. */
+export function forgotPassword(email) {
+  return authStep("forgot-password", { email });
+}
+
+export function resetPassword(token, password) {
+  return authStep("reset-password", { token, password });
+}
+
+export function confirmEmail(token) {
+  return authStep("confirm-email", { token });
+}
+
+/** El perfil cambió (nombre, tema, avatar, MFA…): actualiza la copia local y avisa. */
+export function updateStaff(patch) {
+  if (!staff) return;
+  staff = { ...staff, ...patch };
+  notify("updated");
 }
 
 /**
