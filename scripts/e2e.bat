@@ -37,11 +37,16 @@ set LOG_LEVEL=warn
 set AI_PROVIDER=mock
 set VOICE_PROVIDER=mock
 set CORS_ORIGIN=http://localhost:4175
+REM Adjuntos y fotos del E2E en su propia carpeta: sin esto iban a la de
+REM desarrollo (..\atencion-ia-storage), mezclados con tus archivos.
+set STORAGE_LOCAL_DIR=%TEMP%\atencion-ia-e2e-storage
 
 echo === 2/5 Backend: compilar e indexar la base de conocimiento ===
 pushd "%BACKEND%"
 call npm run build || (popd & goto :fallo)
 call npm run kb:reindex || (popd & goto :fallo)
+REM Fase 7: el admin del seed vuelve a enrolarse en la verificacion en dos pasos en cada corrida.
+call npm run staff:reset-mfa -- admin@cordillera.example || (popd & goto :fallo)
 start "atencion-ia-e2e-api" /min cmd /c "set PORT=4101&& node dist\server.js"
 start "atencion-ia-e2e-worker" /min cmd /c "set WORKER_METRICS_PORT=9466&& node dist\workers\worker.js"
 popd

@@ -1,8 +1,7 @@
 import { expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { adminAccessToken } from "./adminSession.js";
 
-/** Cuenta de administrador del SEED (datos de prueba públicos del repo de base de datos). */
-const SEED_ADMIN = { email: "admin@cordillera.example", password: "Password123!" };
 /** Contraseña de los agentes que crea cada corrida (solo existen en la base de pruebas). */
 const AGENT_PASSWORD = "E2e-Clave-Pruebas-2026";
 
@@ -12,9 +11,8 @@ const AGENT_PASSWORD = "E2e-Clave-Pruebas-2026";
  * conversaciones por las corridas anteriores.
  */
 export async function createAgent(request, label) {
-  const login = await request.post("/api/auth/login", { data: SEED_ADMIN });
-  expect(login.ok(), "login del admin del seed").toBeTruthy();
-  const { accessToken } = await login.json();
+  // Token del admin del seed obtenido en el globalSetup (con su verificación en dos pasos).
+  const accessToken = adminAccessToken();
   const email = `e2e-${Date.now().toString(36)}-${label}@e2e.example`;
   const res = await request.post("/api/staff", {
     headers: { Authorization: `Bearer ${accessToken}` },

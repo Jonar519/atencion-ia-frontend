@@ -52,12 +52,12 @@ test("cliente → IA con RAG → escalamiento → asesor lo atiende en tiempo re
   const history = panel.locator(".pane .chat__messages");
   await expect(history).toContainText("¿Cuál es el horario de atención de las oficinas?");
   await expect(history).toContainText("Posible fraude");
-  await expect(panel.locator(".pane__meta")).toContainText("prioridad 90");
+  await expect(panel.locator(".pane__meta")).toContainText("prioridad Urgente · 90");
 
   // 4. Lo toma y responde; el cliente lo ve sin recargar.
   await panel.getByRole("button", { name: "Tomar caso" }).click();
   await expect(panel.locator(".pane__meta")).toContainText("Lo atiendes tú");
-  const reply = panel.getByLabel("Respuesta");
+  const reply = panel.getByLabel("Respuesta", { exact: true });
   await reply.fill("Hola, soy tu asesora. Ya bloqueé la tarjeta y abrí el reclamo.");
   await reply.press("Enter");
   await expect(widget.locator(".msg--agent .msg__text").last()).toHaveText(
