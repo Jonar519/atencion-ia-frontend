@@ -1,0 +1,88 @@
+/*
+ * Adjuntos del chat (Fase 7, bloque C): botón "Adjuntar", vista previa antes de
+ * enviar y el adjunto dentro de un mensaje (imagen o tarjeta de PDF).
+ * Solo tokens: los pares texto/fondo ya están medidos en tests/contrast.test.js.
+ */
+.chat__composer-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.chat__composer .attach__preview,
+.chat__composer .attach__error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.attach__preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-sunken);
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+}
+.attach__name,
+.attachment__name {
+  font-weight: 600;
+  color: var(--color-ink-900);
+  overflow-wrap: anywhere;
+}
+.attach__icon,
+.attachment__icon {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-navy-100);
+  color: var(--color-navy-900);
+}
+
+/* Dentro de un mensaje */
+.attachment {
+  margin: var(--space-2) 0 0;
+}
+.attachment--pdf,
+.attachment--pending {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  max-width: 26rem;
+}
+.attachment--pending {
+  opacity: 0.8;
+}
+.attachment__meta {
+  font-size: var(--fs-xs);
+  color: var(--color-ink-500);
+}
+.attachment--image img {
+  display: block;
+  max-width: min(18rem, 100%);
+  max-height: 18rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+.attachment--image figcaption {
+  margin-top: var(--space-1);
+}
+.attachment__loading {
+  width: 12rem;
+  height: 8rem;
+}
+.attachment__error {
+  font-size: var(--fs-sm);
+  color: var(--color-red-700);
+  margin: 0;
+}
+.btn--small {
+  min-height: 2rem;
+  padding: var(--space-1) var(--space-3);
+}

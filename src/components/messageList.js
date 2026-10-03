@@ -1,5 +1,7 @@
 import { h, replaceChildren } from "../lib/dom.js";
 import { shortTime } from "../lib/format.js";
+import { ATTACHMENT_PLACEHOLDER } from "../lib/attachments.js";
+import { renderAttachment } from "./attachmentView.js";
 
 /**
  * Lista de mensajes, compartida por el widget del cliente y el panel.
@@ -43,7 +45,7 @@ function authorLabel(message, perspective) {
   return SENDER_LABEL[sender] ?? "";
 }
 
-export function renderMessage(message, { perspective = "customer", onRetry } = {}) {
+export function renderMessage(message, { perspective = "customer", onRetry, attachments } = {}) {
   const sender = senderOf(message);
   if (sender === "system") {
     return h(
@@ -85,7 +87,13 @@ export function renderMessage(message, { perspective = "customer", onRetry } = {
       dataset: { id: message.id },
     },
     h("p", { class: "msg__author" }, authorLabel(message, perspective), voice, analysis),
-    h("p", { class: "msg__text" }, message.content),
+    message.attachment
+      ? renderAttachment(message.attachment, { cache: attachments, pending: message.state === "pending" })
+      : null,
+    // Un adjunto sin comentario: el servidor guarda un texto fijo que no hace falta repetir.
+    message.attachment && message.content === ATTACHMENT_PLACEHOLDER
+      ? null
+      : h("p", { class: "msg__text" }, message.content),
     h("p", { class: "msg__meta" }, meta)
   );
 }
@@ -95,6 +103,20 @@ export function renderMessage(message, { perspective = "customer", onRetry } = {
  * abajo (no lo arrastra si estaba leyendo mensajes anteriores).
  */
 export function renderMessageList(listEl, messages, options) {
+  // Una imagen adjunta crece al cargar: si la lista estaba al final, se queda al final
+  // (si no, el último mensaje quedaría tapado). "load" no burbujea: se escucha en captura.
+  if (!listEl.dataset.followImages) {
+    listEl.dataset.followImages = "1";
+    listEl.addEventListener(
+      "load",
+      (event) => {
+        if (event.target.tagName !== "IMG") return;
+        const fromBottom = listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight;
+        if (fromBottom - event.target.offsetHeight < 80) listEl.scrollTop = listEl.scrollHeight;
+      },
+      true
+    );
+  }
   const nearBottom = listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight < 80;
   replaceChildren(
     listEl,

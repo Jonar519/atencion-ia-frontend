@@ -53,12 +53,14 @@ export function createMessageStore() {
       emit();
     },
     /** Mensaje propio antes de enviarlo: aparece al instante como "enviando…". */
-    addPending({ clientMsgId, content, sender }) {
+    /** attachment (opcional): datos del adjunto que se está subiendo, para mostrarlo ya ("subiendo…"). */
+    addPending({ clientMsgId, content, sender, attachment = null }) {
       items.set(`local:${clientMsgId}`, {
         id: `local:${clientMsgId}`,
         clientMsgId,
         content,
         sender,
+        attachment,
         createdAt: new Date().toISOString(),
         state: "pending",
         localSeq: ++localSeq,
