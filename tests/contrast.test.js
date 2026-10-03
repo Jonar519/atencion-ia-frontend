@@ -11,14 +11,26 @@ import fs from "node:fs";
  */
 const css = fs.readFileSync("src/styles/tokens.css", "utf8");
 
-function block(selector) {
-  const start = css.indexOf(`${selector} {`);
-  const body = css.slice(start, css.indexOf("\n}", start));
+function tokensIn(body) {
   return Object.fromEntries([...body.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})\b/g)].map((m) => [m[1], m[2]]));
 }
 
-const light = block(":root");
-const dark = { ...light, ...block(':root[data-theme="dark"]') };
+/** Tema claro: el primer bloque :root. */
+function lightBlock() {
+  const start = css.indexOf(":root {");
+  return tokensIn(css.slice(start, css.indexOf("\n}", start)));
+}
+
+/** Tema oscuro: el :root DENTRO de @media (prefers-color-scheme: dark) (lo decide el sistema operativo). */
+function darkBlock() {
+  const media = css.indexOf("@media (prefers-color-scheme: dark) {");
+  if (media < 0) return {};
+  const start = css.indexOf(":root {", media);
+  return tokensIn(css.slice(start, css.indexOf("\n  }", start)));
+}
+
+const light = lightBlock();
+const dark = { ...light, ...darkBlock() };
 
 function luminance(hex) {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
@@ -110,9 +122,59 @@ describe.each([
   });
 });
 
+/**
+ * PORTADA (F4): sigue el tema del sistema como toda la app, así que sus pares se
+ * miden en LOS DOS temas. Cada par, tal como se combina en la sección "PORTADA"
+ * de base.css. Los dos del bloque principal usan tokens propios
+ * (primary-rule, on-primary-accent): en oscuro el ámbar de siempre no alcanza.
+ */
+describe.each([
+  ["claro", light],
+  ["oscuro", dark],
+])("portada, tema %s: contraste de cada par que usa", (_name, theme) => {
+  const LANDING_TEXT = [
+    ["navy-900", "bg"], // marca y título
+    ["ink-500", "bg"], // entradilla, línea del staff, pie de figura, etiqueta del asistente
+    ["navy-500", "bg"], // enlace "Entrar al panel de asesores"
+    ["on-primary", "primary"], // bloque del cliente
+    ["on-primary-accent", "primary"], // "Escribir al banco →" al pasar el cursor o enfocar
+    ["ink-900", "navy-100"], // mensaje del cliente
+    ["ink-500", "navy-100"], // etiqueta "Cliente"
+    ["ink-900", "bg"], // mensaje del asistente
+    ["ink-900", "amber-100"], // mensaje de la asesora
+    ["amber-800", "amber-100"], // etiqueta "Laura · asesora"
+  ];
+  const LANDING_GRAPHIC = [
+    ["primary-rule", "primary"], // regla del bloque del cliente (y al ensancharse)
+    ["amber-600", "bg"], // regla del enlace del staff al pasar el cursor o enfocar
+    ["navy-700", "surface"], // regla del mensaje del cliente
+    ["ink-500", "surface"], // regla del mensaje del asistente
+    ["amber-600", "surface"], // regla del mensaje de la asesora
+    ["focus", "bg"], // contorno de foco (se dibuja por fuera, sobre el fondo)
+  ];
+
+  it.each(LANDING_TEXT)("texto %s sobre %s ≥ 4.5:1", (fg, bg) => {
+    expect(contrast(color(theme, fg), color(theme, bg))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each(LANDING_GRAPHIC)("gráfico %s sobre %s ≥ 3:1", (fg, bg) => {
+    expect(contrast(color(theme, fg), color(theme, bg))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("los pares listados son EXACTAMENTE los colores que usa la portada en base.css", () => {
+    const base = fs.readFileSync("src/styles/base.css", "utf8");
+    const start = base.indexOf("/* === PORTADA (bloque F4) ===");
+    const section = base.slice(start, base.indexOf("@media (min-width: 48rem)", start));
+    const used = new Set([...section.matchAll(/var\(--color-([\w-]+)\)/g)].map((m) => m[1]));
+    const listed = new Set([...LANDING_TEXT, ...LANDING_GRAPHIC].flat());
+    // "border" es el separador fino (decorativo, no transmite información): no requiere 3:1.
+    expect([...used].filter((t) => !listed.has(t) && t !== "border").sort()).toEqual([]);
+  });
+});
+
 describe("tema oscuro", () => {
   it("redefine TODOS los colores del tema claro (ninguno queda claro sobre oscuro por olvido)", () => {
-    const darkOnly = block(':root[data-theme="dark"]');
+    const darkOnly = darkBlock();
     const colorTokens = Object.keys(light).filter((k) => k.startsWith("color-") || k === "focus");
     expect(colorTokens.filter((k) => !(k in darkOnly))).toEqual([]);
   });

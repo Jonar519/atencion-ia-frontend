@@ -6,7 +6,6 @@ import { confirmEmailView, forgotPasswordView, resetPasswordView } from "../src/
 import { agentProfileView } from "../src/views/agent/profile.view.js";
 import { clampOffset, coverScale, zoomAround } from "../src/components/avatarCropper.js";
 import { describeUserAgent } from "../src/lib/userAgent.js";
-import { applyTheme, bindThemeToSession } from "../src/theme.js";
 import { initials } from "../src/components/avatar.js";
 import { HttpError } from "../src/api/http.js";
 import { flush } from "./support/fakeWebSocket.js";
@@ -21,7 +20,6 @@ beforeEach(() => {
   session._resetForTests();
   document.body.replaceChildren();
   window.location.hash = "";
-  delete document.documentElement.dataset.theme;
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -68,14 +66,14 @@ describe("sesión: login en pasos", () => {
     );
   });
 
-  it("updateStaff actualiza la copia local y avisa (p. ej. el tema)", async () => {
+  it("updateStaff actualiza la copia local y avisa (p. ej. el nombre)", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(json(200, { accessToken: "a.b.c", staff: STAFF }));
     await session.login("laura@x.example", "clave");
     const seen = [];
     session.onSessionChange((event) => seen.push(event));
-    session.updateStaff({ theme: "dark" });
-    expect(session.getStaff().theme).toBe("dark");
-    expect(seen).toEqual([{ staff: expect.objectContaining({ theme: "dark" }), reason: "updated" }]);
+    session.updateStaff({ name: "Laura M." });
+    expect(session.getStaff().name).toBe("Laura M.");
+    expect(seen).toEqual([{ staff: expect.objectContaining({ name: "Laura M." }), reason: "updated" }]);
   });
 });
 
@@ -234,7 +232,6 @@ const PROFILE = {
   email: "laura@x.example",
   role: "agent",
   phone: null,
-  theme: "system",
   mfaEnabled: false,
   mfaRequired: false,
   backupCodesRemaining: 0,
@@ -305,7 +302,6 @@ describe("vista Mi perfil", () => {
     expect(titles).toEqual([
       "Tus datos",
       "Foto",
-      "Apariencia",
       "Correo",
       "Contraseña",
       "Verificación en dos pasos",
@@ -352,18 +348,14 @@ describe("vista Mi perfil", () => {
     expect(api.revokeOtherSessions).toHaveBeenCalled();
   });
 
-  it("cambiar el tema lo guarda y actualiza la sesión (el tema se aplica al instante)", async () => {
+  it("NO ofrece ningún control de tema: lo decide el sistema operativo (y nada lo guarda en el perfil)", async () => {
     const root = document.body.appendChild(document.createElement("div"));
     const api = fakeProfileApi();
-    const fake = fakeStaffSession();
-    agentProfileView(root, {}, { profileApi: api, session: fake });
+    agentProfileView(root, {}, { profileApi: api, session: fakeStaffSession() });
     await flush();
-    const dark = root.querySelector('input[name="theme"][value="dark"]');
-    dark.checked = true;
-    dark.dispatchEvent(new Event("change"));
-    await flush();
-    expect(api.update).toHaveBeenCalledWith({ theme: "dark" });
-    expect(fake.updateStaff).toHaveBeenCalledWith(expect.objectContaining({ theme: "dark" }));
+    expect(root.querySelector('[name="theme"], [name*="tema" i], select[id*="theme"], [data-theme]')).toBeNull();
+    expect(root.textContent).not.toMatch(/Apariencia|Tema del panel|Oscuro|Claro/);
+    expect(api.update.mock.calls.flat().some((body) => body && "theme" in body)).toBe(false);
   });
 
   it("un admin ve la MFA como obligatoria y sin opción de desactivarla", async () => {
@@ -437,20 +429,6 @@ describe("utilidades", () => {
     expect(initials("Laura Méndez Ruiz")).toBe("LR");
     expect(initials("Ana")).toBe("A");
     expect(initials("")).toBe("?");
-  });
-
-  it("tema: aplica claro/oscuro, 'system' sigue al sistema y al salir vuelve al claro", () => {
-    window.matchMedia = vi.fn(() => ({ matches: true, addEventListener: vi.fn() }));
-    expect(applyTheme("dark")).toBe("dark");
-    expect(applyTheme("light")).toBe("light");
-    expect(applyTheme("system")).toBe("dark");
-    expect(document.documentElement.dataset.theme).toBe("dark");
-    let listener;
-    const fake = { getStaff: () => ({ theme: "light" }), onSessionChange: (fn) => ((listener = fn), () => {}) };
-    bindThemeToSession(fake);
-    expect(document.documentElement.dataset.theme).toBe("light");
-    listener({ staff: null, reason: "logout" });
-    expect(document.documentElement.dataset.theme).toBeUndefined();
   });
 });
 

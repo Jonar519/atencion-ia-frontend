@@ -3,6 +3,7 @@ import { profileApi as defaultProfileApi } from "../../api/profile.js";
 import * as defaultSession from "../../auth/session.js";
 import { navigate } from "../../router.js";
 import { avatar } from "../../components/avatar.js";
+import { userMenu } from "../../components/userMenu.js";
 import { createAvatarCropper, loadImage } from "../../components/avatarCropper.js";
 import { backupCodesPanel } from "../../components/backupCodes.js";
 import { toast } from "../../components/toast.js";
@@ -23,12 +24,6 @@ function networkLabel(ip) {
   return ip === "0:0:0::" || ip === "127.0.0.0" ? " · este equipo" : ` · red ${ip}`;
 }
 
-const THEMES = [
-  ["system", "Como el sistema"],
-  ["light", "Claro"],
-  ["dark", "Oscuro"],
-];
-
 export function agentProfileView(root, _params, deps = {}) {
   const profileApi = deps.profileApi ?? defaultProfileApi;
   const session = deps.session ?? defaultSession;
@@ -37,6 +32,8 @@ export function agentProfileView(root, _params, deps = {}) {
   const cleanups = [];
 
   const content = h("div", { class: "profile__content", "aria-busy": "true" });
+  // Menú de usuario (bloque F3): también aquí, con "Salir" (antes el perfil no tenía cómo cerrar sesión).
+  const userSlot = h("span", { class: "topbar__user" });
   replaceChildren(
     root,
     h(
@@ -46,7 +43,12 @@ export function agentProfileView(root, _params, deps = {}) {
         "header",
         { class: "topbar" },
         h("h1", { class: "topbar__title" }, "Mi perfil"),
-        h("div", { class: "topbar__actions" }, h("a", { class: "link-btn", href: "#/agente" }, "Volver al panel"))
+        h(
+          "div",
+          { class: "topbar__actions" },
+          h("a", { class: "link-btn", href: "#/agente" }, "Volver al panel"),
+          userSlot
+        )
       ),
       h("main", { class: "profile__main" }, content)
     )
@@ -65,6 +67,18 @@ export function agentProfileView(root, _params, deps = {}) {
     try {
       const me = session.getStaff() ?? (await session.restore());
       if (!me) return navigate("/agente/login");
+      if (!userSlot.firstChild) {
+        const menu = userMenu(me, {
+          current: "/agente/perfil",
+          loadAvatar: (id) => profileApi.avatarOf(id),
+          onLogout: async () => {
+            await session.logout();
+            navigate("/agente/login");
+          },
+        });
+        userSlot.append(menu.el);
+        cleanups.push(() => menu.dispose());
+      }
       profile = await profileApi.get();
       if (disposed) return;
       render();
@@ -93,7 +107,6 @@ export function agentProfileView(root, _params, deps = {}) {
       content,
       identitySection(),
       avatarSection(),
-      appearanceSection(),
       emailSection(),
       passwordSection(),
       mfaSection(),
@@ -106,7 +119,6 @@ export function agentProfileView(root, _params, deps = {}) {
     profile = next;
     session.updateStaff({
       name: next.name,
-      theme: next.theme,
       mfaEnabled: next.mfaEnabled,
       hasAvatar: next.hasAvatar,
       avatarVersion: next.avatarVersion,
@@ -313,40 +325,6 @@ export function agentProfileView(root, _params, deps = {}) {
       ),
       h("p", { class: "muted" }, "Se recorta en tu navegador y se sube solo el recorte (256 × 256 px)."),
       editor,
-      result.el
-    );
-  }
-
-  function appearanceSection() {
-    const result = feedback();
-    const options = THEMES.map(([value, label]) =>
-      h(
-        "label",
-        { class: "choice-inline" },
-        h("input", {
-          type: "radio",
-          name: "theme",
-          value,
-          checked: profile.theme === value,
-          on: {
-            change: async () => {
-              result.clear();
-              try {
-                applyProfile(await profileApi.update({ theme: value }));
-                result.ok("Tema guardado.");
-              } catch (err) {
-                result.error(err.message);
-              }
-            },
-          },
-        }),
-        ` ${label}`
-      )
-    );
-    return section(
-      "sec-apariencia",
-      "Apariencia",
-      h("fieldset", { class: "profile__fieldset" }, h("legend", {}, "Tema del panel"), ...options),
       result.el
     );
   }
