@@ -1,25 +1,34 @@
 import { expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { adminAccessToken } from "./adminSession.js";
+import { invitationToken } from "./outbox.js";
 
 /** Contraseña de los agentes que crea cada corrida (solo existen en la base de pruebas). */
 const AGENT_PASSWORD = "E2e-Clave-Pruebas-2026";
 
 /**
- * Crea un agente NUEVO por prueba (vía la API de administración): así cada
- * corrida empieza con un agente sin casos, sin chocar con su máximo de
- * conversaciones por las corridas anteriores.
+ * Crea un agente NUEVO por prueba: así cada corrida empieza con un agente sin
+ * casos, sin chocar con su máximo de conversaciones por las corridas anteriores.
+ * Bloque F2: por el ÚNICO camino que existe, la invitación. El admin invita
+ * (API), el enlace se lee del correo simulado y el agente completa su cuenta
+ * con su contraseña (el escenario invitations.spec.js lo recorre por la interfaz).
  */
 export async function createAgent(request, label) {
   // Token del admin del seed obtenido en el globalSetup (con su verificación en dos pasos).
   const accessToken = adminAccessToken();
   const email = `e2e-${Date.now().toString(36)}-${label}@e2e.example`;
-  const res = await request.post("/api/staff", {
+  const name = `Asesora ${label}`;
+  const invited = await request.post("/api/staff/invitations", {
     headers: { Authorization: `Bearer ${accessToken}` },
-    data: { name: `Asesora ${label}`, email, password: AGENT_PASSWORD, role: "agent", maxConcurrent: 3 },
+    data: { name, email, role: "agent", maxConcurrent: 3 },
   });
-  expect(res.status(), await res.text()).toBe(201);
-  return { email, password: AGENT_PASSWORD, name: `Asesora ${label}` };
+  expect(invited.status(), await invited.text()).toBe(201);
+  const accepted = await request.post("/api/auth/invitation/accept", {
+    headers: { "X-Requested-With": "atencion-ia" },
+    data: { token: invitationToken(email), password: AGENT_PASSWORD },
+  });
+  expect(accepted.status(), await accepted.text()).toBe(200);
+  return { email, password: AGENT_PASSWORD, name };
 }
 
 /** Recoge violaciones de la CSP (se reportan en la consola) de una página. */

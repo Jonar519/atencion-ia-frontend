@@ -40,6 +40,10 @@ set CORS_ORIGIN=http://localhost:4175
 REM Adjuntos y fotos del E2E en su propia carpeta: sin esto iban a la de
 REM desarrollo (..\atencion-ia-storage), mezclados con tus archivos.
 set STORAGE_LOCAL_DIR=%TEMP%\atencion-ia-e2e-storage
+REM Limites por IP x5: cada corrida completa ~6 invitaciones (10 por hora por IP) y la
+REM base 1 de Redis conserva los contadores entre corridas locales seguidas. Ningun
+REM escenario E2E prueba los limites (eso lo hacen los tests del backend).
+set RATE_LIMIT_SCALE=5
 
 echo === 2/5 Backend: compilar e indexar la base de conocimiento ===
 pushd "%BACKEND%"

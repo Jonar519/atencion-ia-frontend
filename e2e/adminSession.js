@@ -4,7 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * Sesión del ADMIN del seed para las pruebas E2E (solo para crear agentes por la API).
+ * Sesión del ADMIN del seed para las pruebas E2E: invitar agentes por la API y,
+ * en el escenario de invitaciones, entrar por la INTERFAZ con su código TOTP.
  *
  * Desde la Fase 7 un admin necesita verificación en dos pasos. scripts\e2e.bat
  * (y el CI, que crea la base de cero) dejan al admin SIN MFA, así que el login
@@ -59,7 +60,7 @@ async function post(baseURL, url, body) {
 
 export async function loginSeedAdmin(baseURL) {
   const first = await post(baseURL, "/api/auth/login", SEED_ADMIN);
-  if (first.accessToken) return first.accessToken;
+  if (first.accessToken) return { accessToken: first.accessToken };
   if (first.mfaRequired) {
     throw new Error(
       "El admin del seed ya tiene MFA en esta base. scripts\\e2e.bat la quita antes de correr " +
@@ -67,19 +68,39 @@ export async function loginSeedAdmin(baseURL) {
     );
   }
   const { secret } = await post(baseURL, "/api/auth/mfa/enroll/start", { enrollmentToken: first.enrollmentToken });
+  const now = Date.now();
   const done = await post(baseURL, "/api/auth/mfa/enroll/confirm", {
     enrollmentToken: first.enrollmentToken,
-    code: totp(secret),
+    code: totp(secret, now),
   });
-  return done.accessToken;
+  // El secreto y el paso de 30 s ya usado: para entrar luego por la interfaz con un código NUEVO.
+  return { accessToken: done.accessToken, secret, usedStep: Math.floor(now / 30_000) };
 }
 
 export async function saveAdminSession(baseURL) {
-  const accessToken = await loginSeedAdmin(baseURL);
+  const session = await loginSeedAdmin(baseURL);
   fs.mkdirSync(path.dirname(ADMIN_SESSION_FILE), { recursive: true });
-  fs.writeFileSync(ADMIN_SESSION_FILE, JSON.stringify({ accessToken }));
+  fs.writeFileSync(ADMIN_SESSION_FILE, JSON.stringify(session));
+}
+
+function readAdminSession() {
+  return JSON.parse(fs.readFileSync(ADMIN_SESSION_FILE, "utf8"));
 }
 
 export function adminAccessToken() {
-  return JSON.parse(fs.readFileSync(ADMIN_SESSION_FILE, "utf8")).accessToken;
+  return readAdminSession().accessToken;
+}
+
+/**
+ * Código TOTP para el login del admin por la interfaz. El backend rechaza
+ * reutilizar el código de un paso de 30 s ya usado (anti-replay): si todavía
+ * estamos en ese paso, se espera al siguiente.
+ */
+export async function freshAdminCode() {
+  const { secret, usedStep } = readAdminSession();
+  if (!secret) throw new Error("La sesión del admin no guardó el secreto de MFA (¿la base ya tenía MFA?)");
+  while (Math.floor(Date.now() / 30_000) <= usedStep) await new Promise((r) => setTimeout(r, 1000));
+  const now = Date.now();
+  fs.writeFileSync(ADMIN_SESSION_FILE, JSON.stringify({ ...readAdminSession(), usedStep: Math.floor(now / 30_000) }));
+  return totp(secret, now);
 }
