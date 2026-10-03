@@ -366,3 +366,24 @@ describe("foco del <h1> al cambiar de pantalla (pendiente del bloque A)", () => 
     expect(css).toMatch(/:focus-visible \{\s*outline: 3px solid var\(--focus\);/);
   });
 });
+
+describe("avisos flotantes: tapan unos segundos, pero NUNCA bloquean un clic", () => {
+  const css = () => fs.readFileSync("src/styles/base.css", "utf8");
+  const rule = (selector) => css().match(new RegExp(`(^|\\n)${selector.replace(".", "\\.")} \\{([^}]*)\\}`))?.[2] ?? "";
+
+  it("los avisos (abajo a la derecha) y el de conectividad (arriba) dejan pasar los clics", () => {
+    expect(rule(".toasts")).toMatch(/pointer-events: none;/);
+    expect(rule(".connectivity")).toMatch(/pointer-events: none;/);
+  });
+
+  it("...lo que es seguro porque no contienen nada clicable (si algún día lo tuvieran, este test avisa)", async () => {
+    const { toast } = await import("../src/components/toast.js");
+    const el = toast("Invitación enviada a alguien@x.example. El enlace vence en 72 horas.");
+    expect(el.querySelectorAll("a, button, input, select, textarea, [tabindex]")).toHaveLength(0);
+    const notice = createConnectivityNotice({ doc: document, win: { navigator: { onLine: false } } });
+    notice.mount();
+    expect(notice.el.querySelectorAll("a, button, input, select, textarea, [tabindex]")).toHaveLength(0);
+    notice.dispose();
+    el.remove();
+  });
+});

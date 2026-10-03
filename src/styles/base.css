@@ -103,13 +103,6 @@ a {
   font-size: var(--fs-sm);
   margin-top: var(--space-4);
 }
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--color-amber-800);
-}
 
 /* --- Controles --- */
 .btn {
@@ -231,6 +224,8 @@ label {
 }
 
 /* --- Avisos --- */
+/* Los avisos flotan SOBRE el contenido unos segundos: dejan pasar los clics para no
+   bloquear el botón que tapan (no tienen nada clicable; el lector los anuncia igual). */
 .toasts {
   position: fixed;
   right: var(--space-4);
@@ -239,12 +234,15 @@ label {
   gap: var(--space-2);
   z-index: 20;
   max-width: min(24rem, calc(100vw - 2rem));
+  pointer-events: none;
 }
 .toast {
   background: var(--color-chrome);
   color: var(--color-on-chrome);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius);
+  /* Borde fino: en oscuro "chrome" casi coincide con el fondo y el aviso no se separaba de lo que tapa. */
+  border: 1px solid var(--color-border);
   border-left: var(--rule) solid var(--color-amber-600);
   font-size: var(--fs-sm);
 }
@@ -259,31 +257,147 @@ label {
   margin: 0 auto;
   padding: var(--space-6) var(--space-4);
 }
-.page--landing .choices {
-  list-style: none;
-  padding: 0;
+/* === PORTADA (bloque F4) ===
+   Sigue el tema del sistema como toda la app: sus pares de color se miden en los DOS temas
+   (tests/contrast.test.js, "portada"). Un solo momento destacado (el fragmento de
+   conversación) y una sola micro-interacción: al pasar el cursor O enfocar, la regla izquierda
+   se ensancha y la acción cambia de color, AL INSTANTE (sin transition ni animation: la única
+   animación del sistema es la de la llamada). */
+.landing {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-6);
 }
-.choice {
-  display: grid;
-  gap: var(--space-1);
-  padding: var(--space-4) var(--space-5);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-left: var(--rule) solid var(--color-amber-600);
-  border-radius: var(--radius);
-  text-decoration: none;
-  color: var(--color-ink-900);
-}
-.choice strong {
+.landing__brand {
+  margin: 0;
   font-family: var(--font-serif);
+  font-weight: 600;
   font-size: var(--fs-md);
   color: var(--color-navy-900);
 }
-.choice:hover {
-  border-color: var(--color-border-strong);
+.landing__title {
+  margin: var(--space-3) 0 var(--space-4);
+  font-size: var(--fs-display);
+  line-height: 1.1;
+  max-width: 20ch;
+  text-wrap: balance; /* líneas parejas: sin una palabra suelta colgando */
+}
+.landing__lede {
+  margin: 0 0 var(--space-6);
+  max-width: 34ch;
+  font-size: var(--fs-md);
+  color: var(--color-ink-500);
+}
+.landing__choices {
+  max-width: 28rem;
+}
+/* Cliente: la acción principal. */
+.landing__customer {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-5);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  text-decoration: none;
+  border-radius: var(--radius);
+  border-left: var(--rule) solid var(--color-primary-rule);
+}
+.landing__customer strong {
+  font-family: var(--font-serif);
+  font-size: var(--fs-lg);
+}
+.landing__cta {
+  margin-top: var(--space-3);
+  font-weight: 600;
+}
+.landing__customer:hover,
+.landing__customer:focus-visible {
+  border-left-width: 6px;
+  padding-left: calc(var(--space-5) - 3px); /* el texto no se mueve al ensancharse la regla */
+}
+.landing__customer:hover .landing__cta,
+.landing__customer:focus-visible .landing__cta {
+  color: var(--color-on-primary-accent);
+  /* El acento apenas se distingue del blanco: el subrayado hace visible el cambio sin depender del color. */
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+/* Staff: una línea discreta, la misma micro-interacción en pequeño (su regla aparece). */
+.landing__staff {
+  margin: var(--space-5) 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--fs-sm);
+  color: var(--color-ink-500);
+}
+.landing__staff-link {
+  font-weight: 600;
+  color: var(--color-navy-500);
+  padding-left: var(--space-2);
+  border-left: var(--rule) solid transparent;
+}
+.landing__staff-link:hover,
+.landing__staff-link:focus-visible {
+  border-left-color: var(--color-amber-600);
+}
+/* El momento destacado: la regla de color dice quién habla, como en toda la app. */
+.landing__demo {
+  margin: 0;
+}
+.landing__thread {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+.landing__msg {
+  max-width: 88%;
+  padding: var(--space-2) var(--space-3);
+  border-left: var(--rule) solid;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--color-ink-900);
+}
+.landing__msg p {
+  margin: var(--space-1) 0 0;
+}
+.landing__who {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--color-ink-500);
+}
+.landing__msg--customer {
+  justify-self: end;
+  border-left-color: var(--color-navy-700);
   background: var(--color-navy-100);
+}
+.landing__msg--ai {
+  border-left-color: var(--color-ink-500);
+  background: var(--color-bg);
+}
+.landing__msg--agent {
+  border-left-color: var(--color-amber-600);
+  background: var(--color-amber-100);
+}
+.landing__msg--agent .landing__who {
+  color: var(--color-amber-800);
+}
+.landing__caption {
+  margin-top: var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--color-ink-500);
+  max-width: 44ch;
+}
+@media (min-width: 48rem) {
+  .landing {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-6) 4rem;
+    padding-top: 12vh;
+  }
 }
 
 .login,
@@ -297,7 +411,7 @@ label {
   width: 100%;
 }
 
-/* Aviso de conectividad (D2): UNO solo, abajo al centro, sin animación. */
+/* Aviso de conectividad (D2): UNO solo, arriba al centro, sin animación. */
 .connectivity {
   position: fixed;
   left: 50%;
@@ -307,10 +421,13 @@ label {
   max-width: min(32rem, calc(100vw - 2rem));
   background: var(--color-chrome);
   color: var(--color-on-chrome);
+  border: 1px solid var(--color-border); /* igual que los avisos: se separa del fondo también en oscuro */
   border-left: var(--rule) solid var(--color-amber-600);
   border-radius: var(--radius);
   padding: var(--space-3) var(--space-4);
   font-size: var(--fs-sm);
+  /* Puede quedarse mientras dure el corte: no debe bloquear lo que tapa (p. ej. "Llamar"). */
+  pointer-events: none;
 }
 .connectivity--offline {
   border-left-color: var(--color-chrome-danger);
