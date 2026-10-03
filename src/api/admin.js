@@ -28,6 +28,10 @@ export const adminApi = {
     api.post(`/api/conversations/${q(conversationId)}/reassign`, { agentId }, auth),
   exportStaff: (id) => api.get(`/api/staff/${q(id)}/export`, auth),
   anonymize: (id) => api.post(`/api/staff/${q(id)}/anonymize`, undefined, auth),
+  // Invitaciones (bloque F2): la ÚNICA forma de dar de alta a alguien. El enlace nunca vuelve aquí: va por correo.
+  invite: (data) => api.post("/api/staff/invitations", data, auth),
+  resendInvitation: (id) => api.post(`/api/staff/${q(id)}/invitation/resend`, undefined, auth),
+  cancelInvitation: (id) => api.delete(`/api/staff/${q(id)}/invitation`, auth),
   // Analítica
   analytics: (days) => api.get(`/api/admin/analytics?days=${q(days)}`, auth),
 };

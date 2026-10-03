@@ -176,6 +176,42 @@
 .team__member--deleted {
   opacity: 0.7;
 }
+/* Invitaciones (bloque F2). Pares de color ya medidos en tests/contrast.test.js (AA en ambos temas). */
+.team__toolbar {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  margin-bottom: var(--space-4);
+}
+.team__toolbar > p {
+  margin: 0;
+}
+.team__invite {
+  justify-self: stretch;
+}
+.team__invite-form {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 28rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+.team__invite-form > p {
+  margin: 0;
+}
+.team__member--pending {
+  border-style: dashed;
+}
+.pill--pending {
+  background: var(--color-amber-100);
+  color: var(--color-amber-800);
+}
+.pill--danger {
+  background: var(--color-red-100);
+  color: var(--color-red-700);
+}
 .team__info {
   display: grid;
   gap: var(--space-1);

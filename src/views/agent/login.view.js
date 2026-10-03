@@ -1,7 +1,7 @@
 import { h, replaceChildren } from "../../lib/dom.js";
 import * as defaultSession from "../../auth/session.js";
 import { navigate } from "../../router.js";
-import { backupCodesPanel } from "../../components/backupCodes.js";
+import { showMfaEnrollment } from "../../components/mfaEnrollment.js";
 import { toast } from "../../components/toast.js";
 
 /**
@@ -78,7 +78,7 @@ export function agentLoginView(root, _params, deps = {}) {
       password,
       error,
       submit,
-      h("a", { class: "login__link", href: "#/agente/recuperar" }, "¿Olvidaste tu contraseña?")
+      h("a", { class: "login__link login__forgot", href: "#/agente/recuperar" }, "¿Olvidaste tu contraseña?")
     );
     onSubmit(form, error, submit, async () => {
       try {
@@ -143,58 +143,7 @@ export function agentLoginView(root, _params, deps = {}) {
     show(form);
   }
 
-  async function showEnrollment(enrollmentToken) {
-    const error = errorBox();
-    const qr = h("img", { class: "mfa__qr", alt: "Código QR para tu app de autenticación", width: 220, height: 220 });
-    const secretText = h("code", { class: "mfa__secret" });
-    const code = h("input", {
-      id: "enroll-code",
-      class: "input input--code",
-      inputmode: "numeric",
-      autocomplete: "one-time-code",
-      maxlength: 6,
-      required: true,
-    });
-    const submit = h("button", { class: "btn btn--primary", type: "submit" }, "Activar y entrar");
-    const form = h(
-      "form",
-      { class: "login login--wide" },
-      h("h1", {}, "Activa la verificación en dos pasos"),
-      h(
-        "p",
-        {},
-        "Las cuentas de administrador deben usarla. Escanea el código con Google Authenticator, Microsoft Authenticator u otra app compatible."
-      ),
-      h(
-        "div",
-        { class: "mfa__setup" },
-        qr,
-        h("p", { class: "muted" }, "¿No puedes escanear? Escribe esta clave: ", secretText)
-      ),
-      h("label", { for: "enroll-code" }, "Código de 6 dígitos que muestra la app"),
-      code,
-      error,
-      submit
-    );
-    onSubmit(form, error, submit, async () => {
-      const result = await session.confirmEnrollment(enrollmentToken, code.value.trim());
-      // La sesión ya está abierta, pero primero debe guardar sus códigos.
-      replaceChildren(
-        main,
-        backupCodesPanel(result.backupCodes, {
-          title: "Guarda tus códigos de respaldo",
-          onDone: () => navigate("/agente"),
-        })
-      );
-    });
-    show(form);
-    try {
-      const setup = await session.startEnrollment(enrollmentToken);
-      qr.src = setup.qrDataUrl;
-      secretText.textContent = setup.secret.replace(/(.{4})/g, "$1 ").trim();
-    } catch (err) {
-      error.textContent = err.message;
-      error.hidden = false;
-    }
+  function showEnrollment(enrollmentToken) {
+    showMfaEnrollment(main, { session, enrollmentToken, onDone: () => navigate("/agente") });
   }
 }

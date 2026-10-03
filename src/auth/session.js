@@ -161,6 +161,24 @@ export function confirmEmail(token) {
   return authStep("confirm-email", { token });
 }
 
+/**
+ * Invitación (bloque F2: la ÚNICA forma de obtener una cuenta). A quién invitaron:
+ * { name, email, role, mfaRequired }. Un enlace que no sirve → LoginError con un mensaje único.
+ */
+export function inspectInvitation(token) {
+  return authStep("invitation", { token });
+}
+
+/**
+ * Completa la cuenta con la contraseña elegida. Igual que login(): { staff } (sesión abierta),
+ * o { mfaEnrollmentRequired, enrollmentToken } si es admin (debe activar la verificación).
+ */
+export async function acceptInvitation(token, password) {
+  const data = await authStep("invitation/accept", { token, password });
+  if (data.accessToken) return { staff: finish(data).staff };
+  return data;
+}
+
 /** El perfil cambió (nombre, tema, avatar, MFA…): actualiza la copia local y avisa. */
 export function updateStaff(patch) {
   if (!staff) return;
