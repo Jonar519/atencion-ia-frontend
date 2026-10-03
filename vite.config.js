@@ -49,7 +49,8 @@ export const CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self'",
-  "img-src 'self' data:",
+  // blob: el avatar (se pide con el token y se muestra con un URL local) y el recorte antes de subirlo.
+  "img-src 'self' data: blob:",
   "font-src 'self'",
   "connect-src 'self'",
   "worker-src 'self'",

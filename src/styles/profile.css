@@ -1,0 +1,296 @@
+/*
+ * Identidad profesional (Fase 7): login en pasos, verificación en dos pasos,
+ * mi perfil, sesiones activas y estados de carga. Solo tokens de tokens.css
+ * (sirven igual en el tema claro y en el oscuro).
+ */
+
+.login__link {
+  justify-self: start;
+  font-size: var(--fs-sm);
+}
+.login--wide {
+  max-width: 34rem;
+}
+.input--code {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2em;
+  font-size: var(--fs-md);
+  max-width: 12rem;
+}
+.notice {
+  border-left: var(--rule) solid var(--color-green-800);
+  background: var(--color-green-100);
+  color: var(--color-ink-900);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+}
+
+/* --- Verificación en dos pasos --- */
+.mfa__setup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+}
+.mfa__qr {
+  /* El QR necesita fondo blanco para leerse, también en el tema oscuro. */
+  background: #ffffff;
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+.mfa__secret {
+  font-size: var(--fs-sm);
+  word-break: break-all;
+  color: var(--color-ink-900);
+}
+.backup-codes {
+  display: grid;
+  gap: var(--space-3);
+}
+.backup-codes__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: var(--space-2);
+  padding-left: var(--space-5);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-md);
+}
+.backup-codes__actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* --- Avatar --- */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-navy-100);
+  color: var(--color-navy-900);
+  font-weight: 600;
+  flex: none;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar--sm {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: var(--fs-xs);
+}
+.avatar--lg {
+  width: 6rem;
+  height: 6rem;
+  font-size: var(--fs-lg);
+}
+.topbar__who {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+}
+.topbar__who:hover span:not(.avatar) {
+  text-decoration: underline;
+}
+
+/* --- Mi perfil --- */
+.profile {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+.profile .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.profile .topbar .link-btn {
+  color: var(--color-on-chrome);
+}
+.profile__main {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4) var(--space-6);
+}
+.profile__content {
+  display: grid;
+  gap: var(--space-4);
+}
+.profile__section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+}
+.profile__section h2 {
+  font-size: var(--fs-md);
+  margin: 0;
+}
+.profile__form {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 28rem;
+}
+.profile__form .btn {
+  justify-self: start;
+  margin-top: var(--space-2);
+}
+.profile__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.profile__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.profile__fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.profile__fieldset legend {
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+.choice-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.profile__feedback {
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+.profile__feedback--ok {
+  color: var(--color-green-800);
+}
+.profile__danger summary {
+  cursor: pointer;
+  color: var(--color-red-700);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+.profile__danger[open] summary {
+  margin-bottom: var(--space-3);
+}
+
+/* Recorte del avatar */
+.cropper {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+.cropper__canvas {
+  width: 16rem;
+  height: 16rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-strong);
+  cursor: grab;
+  touch-action: none;
+  background: var(--color-sunken);
+}
+.cropper__canvas:active {
+  cursor: grabbing;
+}
+.cropper__zoom {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-size: var(--fs-sm);
+}
+
+/* Sesiones activas */
+.sessions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+}
+.session {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0 var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  border-left: var(--rule) solid transparent;
+}
+.session--current {
+  border-left-color: var(--color-green-800);
+}
+.session p {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-sm);
+}
+.session .pill {
+  margin-left: var(--space-2);
+}
+
+/* --- Estados de carga y error (esqueleto, "Reintentar") --- */
+.skeleton-group {
+  display: grid;
+  gap: var(--space-4);
+}
+/* Estático a propósito: la ÚNICA animación del sistema es el traspaso de una llamada (voice.css). */
+.skeleton {
+  display: block;
+  border-radius: var(--radius);
+  background: var(--color-sunken);
+  border: 1px dashed var(--color-border);
+}
+.skeleton--block {
+  height: 8rem;
+}
+.skeleton--line {
+  height: 2.5rem;
+  margin: var(--space-2) 0;
+  list-style: none;
+}
+.state--error {
+  border-left: var(--rule) solid var(--color-red-700);
+  background: var(--color-red-100);
+  color: var(--color-ink-900);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+  list-style: none;
+}
+.state--error p {
+  margin: 0;
+}
+
+/* Casilla + su etiqueta en la MISMA línea (la regla global de label es de bloque). */
+.backup-codes__confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+.backup-codes__confirm label {
+  display: inline;
+  margin: 0;
+  font-weight: 600;
+}
+.backup-codes__confirm input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  flex: none;
+}
