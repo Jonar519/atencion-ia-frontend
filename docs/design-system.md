@@ -53,13 +53,24 @@ cada fondo donde se apoya. Antes medía 1.65:1 (claro) y 2.51:1 (oscuro). Ahora,
 Es un gris neutro (no parte de la paleta navy/ámbar, que no cambió). Los separadores decorativos
 (`--color-border`) no transmiten información y siguen claros a propósito.
 
-## Tema oscuro (Fase 7)
+## Tema claro y oscuro: lo decide el sistema operativo
 
-- Preferencia del perfil del staff: "Como el sistema", "Claro" u "Oscuro" (`src/theme.js` pone
-  `data-theme` en `<html>`; "sistema" sigue a `prefers-color-scheme` en vivo). El widget del
-  cliente y el login siguen en el tema claro.
-- Un solo bloque `:root[data-theme="dark"]` en `tokens.css` que redefine **todos** los colores (un
-  test lo exige). Misma identidad navy + ámbar: fondos navy muy oscuros y los tonos de texto
+- **Una sola regla, sin excepciones:** TODA la aplicación (portada, widget del cliente, login,
+  recuperación, "Completa tu cuenta", panel, perfil y administración) sigue el tema del sistema
+  operativo del dispositivo (`prefers-color-scheme`), para todos los roles. **No hay ningún control
+  para elegirlo** ni preferencia guardada: la columna `theme` del perfil se eliminó (migración 019).
+- **Solo CSS:** los colores oscuros viven en `@media (prefers-color-scheme: dark) { :root { … } }`
+  en `tokens.css`, y `<meta name="color-scheme" content="light dark">` hace que los controles
+  nativos también sigan al sistema. Si el sistema cambia con la app abierta (p. ej. el modo oscuro
+  de Windows), el navegador vuelve a evaluar la regla y la app cambia **al instante, sin recargar ni
+  JavaScript**, y sin parpadeo al cargar (el tema se conoce antes del primer pintado).
+- **Ninguna pantalla puede salirse:** solo `tokens.css` define colores o fija el esquema (un test
+  lo exige, junto con que no exista `data-theme` ni JavaScript que decida el tema). El E2E
+  `e2e/system-theme.spec.js` recorre las 13 pantallas en claro y en oscuro con Chrome (fondo y axe
+  en cada una) y comprueba el cambio en vivo.
+- (Historia: en el bloque A el tema era una preferencia del perfil, y en el F1 las páginas públicas
+  quedaban fijas en claro. Ambos modelos se reemplazaron por esta regla.)
+- El bloque oscuro redefine **todos** los colores (un test lo exige). Misma identidad navy + ámbar: fondos navy muy oscuros y los tonos de texto
   `-700/-800` aclarados. La paleta clara no cambió.
 - Las superficies "fuertes" (barra superior, avisos, botón principal y de peligro) tienen tokens
   propios (`--color-chrome`, `--color-primary`, `--color-danger`…) porque NO se invierten.
@@ -68,6 +79,31 @@ Es un gris neutro (no parte de la paleta navy/ámbar, que no cambió). Los separ
   Peor par de texto: claro `amber-800`/`navy-100` 4.85:1; oscuro blanco/`primary-hover` 5.43:1.
 - El QR de la verificación en dos pasos se muestra siempre sobre blanco (los lectores de QR lo
   necesitan), también en el tema oscuro.
+- Los avisos flotantes (`.toast`, conectividad) llevan un borde fino `--color-border`: en oscuro
+  su fondo `chrome` casi coincide con el de la página y no se separaban de lo que tapan.
+
+## Portada (F4), en los dos temas
+
+Un solo momento destacado (fragmento de conversación con la regla de color real: navy = cliente,
+gris = asistente, ámbar = persona del banco), el cliente como acción principal y una sola
+micro-interacción instantánea (la regla se ensancha y la acción se subraya). Los dos pares sobre el
+bloque principal tienen tokens propios porque en oscuro el ámbar de siempre no alcanza:
+
+| Par (medido en `tests/contrast.test.js`)               | Claro        | Oscuro       | Mínimo |
+| ------------------------------------------------------ | ------------ | ------------ | ------ |
+| Texto blanco sobre el bloque del cliente (`primary`)   | 11,53:1      | 6,97:1       | 4,5    |
+| "Escribir al banco →" al enfocar (`on-primary-accent`) | 10,49:1      | 4,75:1       | 4,5    |
+| Regla del bloque del cliente (`primary-rule`)          | 3,13:1       | 4,39:1       | 3      |
+| Título y marca (`navy-900` / `bg`)                     | 14,51:1      | 15,48:1      | 4,5    |
+| Textos secundarios y pie de figura (`ink-500` / `bg`)  | 5,52:1       | 8,49:1       | 4,5    |
+| Enlace del staff (`navy-500` / `bg`)                   | 6,43:1       | 8,62:1       | 4,5    |
+| Mensajes: texto y etiquetas sobre sus fondos           | 5,07–13,40:1 | 5,92–15,39:1 | 4,5    |
+| Reglas de los mensajes y del enlace del staff          | 3,40–11,53:1 | 7,31–8,98:1  | 3      |
+
+`primary-rule` en claro es el ámbar `#b9770e` y en oscuro `#f3c774`; `on-primary-accent` en claro
+`#fcf3e7` y en oscuro `#f6d08a` (el único tono nuevo de la paleta: ningún ámbar existente llegaba a
+4,5:1 sobre el `primary` oscuro). El par más justo es la regla en claro (3,13:1): el test falla si
+cualquiera de los dos colores se oscurece.
 
 ## Llamadas "en vivo" (Fase 7, D1)
 
@@ -138,6 +174,20 @@ reenvío automático porque no existe: un mensaje que no salió muestra "No se e
 **Foco del `<h1>`:** al cambiar de pantalla el router enfoca el `<h1>` (lectores de pantalla), que
 tiene `tabindex="-1"`. Ya no muestra recuadro: `[tabindex="-1"]:focus { outline: none }`. Solo lo usan
 ese `<h1>` y los selectores de archivo ocultos; nada que se alcance con Tab pierde su recuadro.
+
+## Menú de usuario, avisos e invitación (bloque F)
+
+- **Menú de usuario** (`components/userMenu.js`), el mismo en el panel, la administración y "Mi
+  perfil": la foto y el nombre son un botón visible (borde `on-chrome-muted` sobre la barra) que
+  despliega rol, correo, **Mi perfil** y **Salir**. Patrón "botón que despliega" (`aria-expanded`),
+  no `role=menu`: al abrir el foco va a "Mi perfil", Escape cierra y devuelve el foco, un clic fuera
+  o salir con Tab también cierran. Sin animación.
+- **Avisos flotantes** (`.toasts` y conectividad): `pointer-events: none`. Tapan unos segundos pero
+  nunca bloquean el clic del botón que cubren; no contienen nada clicable (un test lo vigila).
+- **"Completa tu cuenta"** (invitación) usa los mismos estilos del login y la recuperación; la
+  activación de la verificación en dos pasos es un único componente (`components/mfaEnrollment.js`)
+  que comparten el login y la invitación.
+- **Login:** "¿Olvidaste tu contraseña?" va centrado justo debajo de "Entrar".
 
 ## Diseño adaptable
 

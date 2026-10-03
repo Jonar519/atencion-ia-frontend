@@ -12,23 +12,27 @@ consentimiento; el asesor se une desde el panel y hablan por WebRTC. Guía para 
 micrófono: [docs/prueba-voz.md](docs/prueba-voz.md).
 
 **Fase 7** (identidad profesional y evolución visual): cuenta del asesor (recuperar contraseña,
-verificación en dos pasos, sesiones activas, perfil con foto y tema oscuro), administración por rol
+verificación en dos pasos, sesiones activas y perfil con foto), toda la app en el tema claro u oscuro del sistema operativo, administración por rol
 (base de conocimiento, respuestas predefinidas, equipo y analítica), adjuntos en el chat, la llamada
 "en vivo" (forma de onda y transición de color) y estados de carga, error, vacío y conectividad.
+Bloque F: alta de asesores SOLO por invitación ("Completa tu cuenta"), menú de usuario con "Mi
+perfil" y "Salir" en todas las pantallas del staff, y una portada nueva.
 Recorrido paso a paso: `atencion-ia-backend/docs/demo-fase7.md`.
 
 ## Estado por fase
 
-| Fase | Contenido                                                                                          | Estado |
-| ---- | -------------------------------------------------------------------------------------------------- | ------ |
-| 4    | Widget de texto, panel de agente, WebSocket, Web Worker, Service Worker, diseño                    | ✅     |
-| 5    | Panel: estado de la llamada, turnos de voz marcados y transcripción EN VIVO del caso abierto       | ✅     |
-| 6    | UI de voz: llamar con consentimiento, micrófono, respuesta en audio, unirse con WebRTC real        | ✅     |
-| 6    | E2E con Playwright (texto y voz) y GitHub Actions                                                  | ✅     |
-| 7    | Identidad: navy/ámbar, tema oscuro, cuenta del asesor (recuperación, MFA, sesiones, perfil y foto) | ✅     |
-| 7    | Administración por rol: base de conocimiento, respuestas predefinidas, equipo y analítica (SVG)    | ✅     |
-| 7    | Adjuntos en el chat (imagen y PDF), con vista previa antes de enviar y E2E propio                  | ✅     |
-| 7    | Llamada en vivo (forma de onda, una sola animación) y estados de carga/error/vacío/conexión        | ✅     |
+| Fase  | Contenido                                                                                                       | Estado |
+| ----- | --------------------------------------------------------------------------------------------------------------- | ------ |
+| 4     | Widget de texto, panel de agente, WebSocket, Web Worker, Service Worker, diseño                                 | ✅     |
+| 5     | Panel: estado de la llamada, turnos de voz marcados y transcripción EN VIVO del caso abierto                    | ✅     |
+| 6     | UI de voz: llamar con consentimiento, micrófono, respuesta en audio, unirse con WebRTC real                     | ✅     |
+| 6     | E2E con Playwright (texto y voz) y GitHub Actions                                                               | ✅     |
+| 7     | Identidad: navy/ámbar, tema del sistema (claro/oscuro), cuenta del asesor (recuperación, MFA, sesiones, perfil) | ✅     |
+| 7     | Administración por rol: base de conocimiento, respuestas predefinidas, equipo y analítica (SVG)                 | ✅     |
+| 7     | Adjuntos en el chat (imagen y PDF), con vista previa antes de enviar y E2E propio                               | ✅     |
+| 7     | Llamada en vivo (forma de onda, una sola animación) y estados de carga/error/vacío/conexión                     | ✅     |
+| 7 (F) | Alta solo por invitación (Equipo + "Completa tu cuenta"); menú de usuario; recuperación bajo "Entrar"           | ✅     |
+| 7 (F) | Portada nueva (fragmento de conversación con la regla de color real) y tema del sistema en TODAS las pantallas  | ✅     |
 
 ## Stack
 
@@ -84,9 +88,10 @@ Si el backend está en otro puerto: `copy .env.example .env` y cambia `VITE_BACK
 
 ```
 src/
-  main.js                  rutas: #/ · #/chat · #/agente/login · #/agente · #/agente/perfil ·
-                           #/agente/recuperar · /restablecer · /confirmar-correo · #/admin/* (solo admin)
-  theme.js                 tema claro/oscuro (parte del perfil del asesor)
+  main.js                  arranque: rutas (app.js), aviso de conectividad, Service Worker
+  app.js                   rutas: #/ · #/chat · #/agente/login · #/agente · #/agente/perfil ·
+                           #/agente/recuperar · /restablecer · /confirmar-correo · /invitacion ·
+                           #/admin/* (solo admin)
   router.js                router por hash; cada vista devuelve una función de limpieza
   auth/session.js          access token EN MEMORIA; refresh single-flight; logout entre pestañas
   api/http.js              fetch + CSRF + un reintento tras renovar ante un 401
@@ -98,12 +103,14 @@ src/
   sw/                      estrategia (función pura), Service Worker y registro
   voice/                   llamada: pcm (16 kHz), AudioWorklet, micrófono, reproductor, WebRTC,
                            sesión del socket de voz, y los controladores del cliente y del asesor
-  views/                   landing, chat del cliente, login, panel, perfil, recuperación y admin/*
+  views/                   landing, chat del cliente, login, panel, perfil, recuperación,
+                           invitación ("Completa tu cuenta") y admin/*
   components/              lista de mensajes, avisos, conexión; Fase 7: states.js (cargando/error/
-                           vacío), connectivity.js, waveform.js, barChart.js, adjuntos, avatar…
+                           vacío), connectivity.js, waveform.js, barChart.js, adjuntos, avatar,
+                           userMenu.js (Mi perfil / Salir), mfaEnrollment.js (login e invitación)…
   lib/                     dom.js, sendQueue.js (orden de envío), attachments.js, priority.js…
   lib/dom.js               h(): crea nodos; el texto SIEMPRE como nodo de texto
-  styles/                  tokens.css (sistema de diseño, claro y oscuro) · base · chat · panel ·
+  styles/                  tokens.css (sistema de diseño; oscuro = el del sistema, en CSS) · base · chat · panel ·
                            voice · admin · profile · attachments
 ```
 
@@ -167,7 +174,7 @@ Todo el texto (mensajes de clientes, de la IA, nombres) entra al DOM como nodo d
 
 ## Tests
 
-`npm test`: 319 tests en 18 archivos — render seguro, sesión (memoria, single-flight, reintento,
+`npm test`: 388 tests en 22 archivos — render seguro, sesión (memoria, single-flight, reintento,
 logout entre pestañas), WebSocket (auth, reconexión con backoff, resync, 4409, cierre limpio),
 store de mensajes, Worker de urgencia, Service Worker (incluye cargar el SW generado), chat del
 cliente (envío, recepción, reintento con el mismo `clientMsgId`, aislamiento por conversación) y
@@ -175,10 +182,13 @@ panel (cola en vivo, historial antes de tomar, tomar/cerrar, caso tomado por otr
 estado de la llamada y transcripción en vivo solo del caso abierto, como texto). Fase 7: identidad
 (MFA, recuperación, sesiones, foto), guardas por rol y vistas de administración, adjuntos, llamada
 en vivo, estados de la interfaz y **contraste WCAG medido sobre los valores reales de los tokens**
-(`tests/contrast.test.js`, que además exige una sola animación en todo el CSS).
+(`tests/contrast.test.js`, que además exige una sola animación en todo el CSS). Bloque F:
+invitaciones y Equipo, ningún registro público, menú de usuario (teclado y foco), portada
+(jerarquía, fragmento ilustrativo, micro-interacción sin animación) y el tema del sistema
+(`tests/systemTheme.test.js`: ningún selector, ninguna pantalla que se salga).
 
-**E2E** (`e2e/`, Playwright): tres escenarios con cliente y asesor en dos navegadores a la vez, contra
-el stack real con IA y voz simuladas.
+**E2E** (`e2e/`, Playwright): cinco escenarios contra el stack real con IA y voz simuladas
+(detalle en [e2e/README.md](e2e/README.md)).
 
 - **Flujo de texto:** RAG → escalamiento → cola en tiempo real → tomar, responder y cerrar. Incluye
   axe, 0 violaciones de CSP y ningún token en el almacenamiento.
@@ -186,11 +196,15 @@ el stack real con IA y voz simuladas.
   con WebRTC conectado; la forma de onda pinta el audio y el borde cambia de color UNA vez.
 - **Adjuntos:** el cliente envía un PDF y una foto, el asesor los ve en vivo y responde con un
   adjunto; 0 violaciones de CSP y axe.
+- **Invitación:** el admin invita desde Equipo → el correo simulado → la asesora completa su cuenta →
+  el enlace no sirve dos veces → inicia sesión.
+- **Tema del sistema:** las 13 pantallas en claro y en oscuro (fondo y axe en cada una) y el cambio
+  en vivo sin recargar.
 
 **CI** (`.github/workflows/ci.yml`): lint, tests, mutaciones y build; `npm audit` y gitleaks; y el
 E2E completo (Postgres y Redis de servicio, backend y base de sus repos, build y `vite preview`).
 
-`npm run test:mutations`: 84/84 reglas críticas rotas a propósito son detectadas.
+`npm run test:mutations`: 109/109 reglas críticas rotas a propósito son detectadas.
 
 La verificación en vivo (dos pestañas, reconexión real, base de prueba aparte) está en
 [docs/fase4-verificacion.md](docs/fase4-verificacion.md). El sistema de diseño, en
