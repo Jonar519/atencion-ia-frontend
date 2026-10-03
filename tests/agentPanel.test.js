@@ -317,3 +317,21 @@ describe("panel de agentes: llamadas de voz (Fase 5)", () => {
     expect(turn.querySelector(".tag--voice").textContent).toBe("Voz");
   });
 });
+
+describe("panel de agentes: menú de usuario (bloque F3)", () => {
+  it("la foto y el nombre son un botón VISIBLE con 'Mi perfil' y 'Salir' (ya no un enlace sin pista)", async () => {
+    const session = fakeSession();
+    await mount(fakeStaffApi(), session);
+    const topbar = root.querySelector(".topbar");
+    expect(topbar.querySelector(".topbar__who")).toBeNull();
+    // Un solo "Salir" en la barra: el del menú.
+    expect([...topbar.querySelectorAll("button")].filter((b) => b.textContent === "Salir")).toHaveLength(1);
+    const button = topbar.querySelector(".user-menu__button");
+    expect(button.textContent).toMatch(/Laura/);
+    button.click();
+    expect(topbar.querySelector('.user-menu a[href="#/agente/perfil"]').textContent).toBe("Mi perfil");
+    [...topbar.querySelectorAll(".user-menu button")].find((b) => b.textContent === "Salir").click();
+    await flush(20);
+    expect(session.logout).toHaveBeenCalled();
+  });
+});

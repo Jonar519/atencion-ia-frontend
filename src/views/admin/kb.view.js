@@ -32,7 +32,12 @@ export function slugify(title) {
 export function adminKbView(root, _params, deps = {}) {
   const adminApi = deps.adminApi ?? defaultAdminApi;
   const session = deps.session ?? defaultSession;
-  const main = adminPage(root, { title: "Base de conocimiento", current: "/admin/kb", staff: session.getStaff() });
+  const main = adminPage(root, {
+    title: "Base de conocimiento",
+    current: "/admin/kb",
+    staff: session.getStaff(),
+    session,
+  });
   let filter = "";
   let disposed = false;
 

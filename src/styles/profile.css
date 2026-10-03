@@ -8,6 +8,14 @@
   justify-self: start;
   font-size: var(--fs-sm);
 }
+/* Bloque F3: la recuperación, justo debajo de "Entrar", centrada y con aire (antes, pegada al botón). */
+.login__forgot {
+  /* El formulario no es una grilla: se centra como bloque de su propio ancho. */
+  display: block;
+  width: fit-content;
+  margin: var(--space-3) auto 0;
+  padding: var(--space-1) var(--space-2);
+}
 .login--wide {
   max-width: 34rem;
 }

@@ -16,6 +16,7 @@ export function adminCannedView(root, _params, deps = {}) {
     title: "Respuestas predefinidas",
     current: "/admin/respuestas",
     staff: session.getStaff(),
+    session,
   });
   const list = h("div", { class: "admin-list" });
   const editor = h("div", { class: "admin-editor" });

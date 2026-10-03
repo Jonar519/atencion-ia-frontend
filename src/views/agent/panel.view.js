@@ -12,7 +12,7 @@ import { createRealtimeClient } from "../../realtime/socket.js";
 import { navigate } from "../../router.js";
 import { createAgentCallController } from "../../voice/agentCall.js";
 import { profileApi as defaultProfileApi } from "../../api/profile.js";
-import { avatar } from "../../components/avatar.js";
+import { userMenu } from "../../components/userMenu.js";
 import { adminNav } from "../../components/adminNav.js";
 import { createCannedPicker } from "../../components/cannedPicker.js";
 import { priorityInfo } from "../../lib/priority.js";
@@ -81,7 +81,7 @@ export function agentPanelView(root, _params, deps = {}) {
   const session = deps.session ?? defaultSession;
   const makeSocket = deps.createRealtimeClient ?? createRealtimeClient;
   const profileApi = deps.profileApi ?? defaultProfileApi;
-  let myAvatar = null;
+  let myMenu = null;
 
   let me = null;
   let tab = "queue";
@@ -119,8 +119,8 @@ export function agentPanelView(root, _params, deps = {}) {
     { id: "availability", class: "input input--compact", on: { change: onAvailability } },
     AVAILABILITY.map(([value, label]) => h("option", { value }, label))
   );
-  // Nombre + foto: enlace a "Mi perfil" (#/agente/perfil).
-  const who = h("a", { class: "topbar__who", href: "#/agente/perfil", title: "Mi perfil" });
+  // Menú de usuario (foto + nombre → "Mi perfil" y "Salir"): se llena al conocer la sesión (boot()).
+  const userSlot = h("span", { class: "topbar__user" });
   // Enlaces de administración: solo se dibujan si la sesión es de un admin (ver boot()).
   const adminSlot = h("span", { class: "topbar__admin" });
   // La llamada en curso vive fuera del detalle: sigue visible aunque el agente mire otro caso.
@@ -158,8 +158,7 @@ export function agentPanelView(root, _params, deps = {}) {
           connection.el,
           h("label", { class: "sr-only", for: "availability" }, "Mi disponibilidad"),
           availability,
-          who,
-          h("button", { class: "link-btn", type: "button", on: { click: onLogout } }, "Salir")
+          userSlot
         )
       ),
       callDock,
@@ -202,8 +201,8 @@ export function agentPanelView(root, _params, deps = {}) {
     me = session.getStaff() ?? (await session.restore());
     if (!me) return navigate("/agente/login");
     replaceChildren(adminSlot, adminNav(me));
-    myAvatar = avatar(me, { loadAvatar: (id) => profileApi.avatarOf(id), size: "sm" });
-    replaceChildren(who, myAvatar.el, h("span", {}, me.name), h("span", { class: "sr-only" }, " (mi perfil)"));
+    myMenu = userMenu(me, { onLogout, loadAvatar: (id) => profileApi.avatarOf(id) });
+    replaceChildren(userSlot, myMenu.el);
     availability.value = me.availability ?? "offline";
     await reloadLists();
     connectRealtime();
@@ -676,7 +675,7 @@ export function agentPanelView(root, _params, deps = {}) {
     clearTimeout(refreshTimer);
     stopSessionWatch();
     socket?.stop();
-    myAvatar?.dispose();
+    myMenu?.dispose();
     attachments.dispose();
   };
 }

@@ -45,6 +45,85 @@
   color: var(--color-on-chrome);
 }
 
+/* --- Menú de usuario (bloque F3): el mismo en el panel, la administración y "Mi perfil" ---
+   Botón visible sobre la barra oscura (on-chrome / on-chrome-muted sobre chrome: pares medidos en
+   tests/contrast.test.js) y un panel con los colores de toda la app. Sin animación. */
+.user-menu {
+  position: relative;
+}
+.user-menu__button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--color-on-chrome);
+  background: transparent;
+  border: 1px solid var(--color-on-chrome-muted);
+  border-radius: 999px;
+  padding: 2px var(--space-3) 2px 2px;
+  cursor: pointer;
+}
+.user-menu__button:hover,
+.user-menu__button[aria-expanded="true"] {
+  border-color: var(--color-on-chrome);
+}
+.user-menu__caret {
+  font-size: var(--fs-xs);
+  color: var(--color-on-chrome-muted);
+}
+.user-menu__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  z-index: 25;
+  min-width: 15rem;
+  background: var(--color-surface);
+  color: var(--color-ink-900);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+  padding: var(--space-2);
+}
+.user-menu__who {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--fs-sm);
+}
+.user-menu__who span {
+  color: var(--color-ink-500);
+}
+.user-menu__email {
+  overflow-wrap: anywhere;
+}
+.user-menu__list {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+}
+.user-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--color-ink-900);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  text-decoration: none;
+  cursor: pointer;
+}
+.user-menu__item:hover {
+  background: var(--color-sunken);
+}
+.user-menu__item[aria-current="page"] {
+  font-weight: 600;
+}
+
 .sidebar {
   grid-area: side;
   border-right: 1px solid var(--color-border);

@@ -38,7 +38,7 @@ export function formatMinutes(minutes) {
 export function adminAnalyticsView(root, _params, deps = {}) {
   const adminApi = deps.adminApi ?? defaultAdminApi;
   const session = deps.session ?? defaultSession;
-  const main = adminPage(root, { title: "Analítica", current: "/admin/analytics", staff: session.getStaff() });
+  const main = adminPage(root, { title: "Analítica", current: "/admin/analytics", staff: session.getStaff(), session });
   const content = h("div", { class: "analytics" });
   let days = "7";
   let disposed = false;
