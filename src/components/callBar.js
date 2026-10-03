@@ -1,4 +1,5 @@
 import { h, replaceChildren } from "../lib/dom.js";
+import { createWaveform } from "./waveform.js";
 
 /**
  * Barra de la llamada en curso (widget del cliente y panel del agente).
@@ -13,10 +14,22 @@ import { h, replaceChildren } from "../lib/dom.js";
  *  - si el asistente está hablando (y que el micrófono está en pausa);
  *  - el estado del audio en vivo con la otra persona (WebRTC).
  * Todo el texto entra como texto (lib/dom.js), también lo transcrito.
+ *
+ * Fase 7 (D1), dirección visual "en vivo":
+ *  - Superficie oscura propia de la llamada, con el acento en vivo: cian =
+ *    "Llamada en curso", menta = "Asesor conectado" (insignia con TEXTO: el
+ *    color nunca es la única pista).
+ *  - Forma de onda en canvas (components/waveform.js) con el mismo nivel del medidor.
+ *  - La ÚNICA animación del sistema: un barrido de color en el borde cuando la
+ *    conversación pasa de la IA a un asesor (announceHandoff). Con
+ *    prefers-reduced-motion el borde cambia de color sin animarse.
  */
 
 /** Mismo umbral que el STT simulado del backend (mock.provider.ts: VOICE_RMS_THRESHOLD). */
 export const VOICE_LEVEL_THRESHOLD = 0.02;
+
+/** Duración del barrido del traspaso (igual que en voice.css, @keyframes callbar-handoff). */
+export const HANDOFF_MS = 1400;
 
 const PEER_TEXT = {
   connecting: "conectando…",
@@ -30,7 +43,12 @@ const PEER_TEXT = {
 export function callBar({ role, onMute, onHangup, onInterrupt, onLeave }) {
   const status = h("span", { class: "callbar__status", role: "status", "aria-live": "polite" }, "Conectando…");
   const timer = h("span", { class: "callbar__timer", "aria-label": "Duración" }, "00:00");
-  const meter = h("meter", { id: `mic-level-${role}`, class: "callbar__meter", min: 0, max: 0.3, value: 0 });
+  // El <meter> sigue ahí para lectores de pantalla; lo que se VE es la forma de onda.
+  const meter = h("meter", { id: `mic-level-${role}`, class: "callbar__meter sr-only", min: 0, max: 0.3, value: 0 });
+  const waveform = createWaveform();
+  const live = h("span", { class: "callbar__live", hidden: true, dataset: { live: "call" } }, "Llamada en curso");
+  let agentConnected = false;
+  let handedOff = false;
   const heard = h("span", { class: "callbar__heard", hidden: true }, "Te escuchamos");
   const hint = h("p", { class: "callbar__hint" }, "");
   const partial = h("p", { class: "callbar__partial", hidden: true, "aria-live": "polite" });
@@ -60,8 +78,15 @@ export function callBar({ role, onMute, onHangup, onInterrupt, onLeave }) {
   const el = h(
     "section",
     { class: "callbar", "aria-label": "Llamada de voz", dataset: { state: "connecting" } },
-    h("div", { class: "callbar__head" }, status, timer),
-    h("div", { class: "callbar__mic" }, h("label", { for: `mic-level-${role}` }, "Tu micrófono"), meter, heard),
+    h("div", { class: "callbar__head" }, live, status, timer),
+    h(
+      "div",
+      { class: "callbar__mic" },
+      h("label", { for: `mic-level-${role}` }, "Tu micrófono"),
+      meter,
+      waveform.el,
+      heard
+    ),
     hint,
     partial,
     peerLine,
@@ -77,9 +102,12 @@ export function callBar({ role, onMute, onHangup, onInterrupt, onLeave }) {
   return {
     el,
     remoteAudio,
+    /** La forma de onda (tests: qué niveles recibió). */
+    waveform,
     setState(state, text) {
       el.dataset.state = state;
       status.textContent = text;
+      live.hidden = state === "connecting" || state === "ended";
       if (state !== "connecting" && state !== "ended" && !tick) {
         startedAt = Date.now();
         tick = setInterval(() => {
@@ -94,10 +122,47 @@ export function callBar({ role, onMute, onHangup, onInterrupt, onLeave }) {
         meter.value = 0;
         heard.hidden = true;
         partial.hidden = true;
+        waveform.stop();
       }
+    },
+    /** "Asesor conectado" (menta) o "Llamada en curso" (cian). */
+    setAgentConnected(value) {
+      agentConnected = value;
+      el.dataset.live = value ? "agent" : "call";
+      live.dataset.live = value ? "agent" : "call";
+      live.textContent = value ? "Asesor conectado" : "Llamada en curso";
+    },
+    get agentConnected() {
+      return agentConnected;
+    },
+    /**
+     * La conversación pasó de la IA a un asesor: UNA vez por llamada, un barrido
+     * de color en el borde (CSS .callbar--handoff, respeta prefers-reduced-motion).
+     */
+    announceHandoff() {
+      if (handedOff) return;
+      handedOff = true;
+      // El borde pasa a menta AL TERMINAR el barrido (si cambiara al empezar, el barrido
+      // menta recorrería un borde ya menta y no se vería: lo mostró la prueba en vivo).
+      let fallback = null;
+      const finish = () => {
+        clearTimeout(fallback);
+        el.classList.remove("callbar--handoff");
+        el.dataset.handoff = "done";
+      };
+      const reduced = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+      if (reduced) {
+        finish(); // sin animación: el color cambia al instante
+        return;
+      }
+      el.classList.add("callbar--handoff");
+      el.addEventListener("animationend", finish, { once: true });
+      // Respaldo por si el navegador no emite animationend (pestaña oculta, CSS no cargado).
+      fallback = setTimeout(finish, HANDOFF_MS + 600);
     },
     setLevel(level) {
       meter.value = Math.min(level, 0.3);
+      waveform.push(level);
       heard.hidden = muted || level < VOICE_LEVEL_THRESHOLD;
     },
     setPartial(text) {
@@ -116,6 +181,7 @@ export function callBar({ role, onMute, onHangup, onInterrupt, onLeave }) {
       muted = value;
       muteButton.textContent = value ? "Activar micrófono" : "Silenciar";
       muteButton.setAttribute("aria-pressed", String(value));
+      waveform.setMuted(value);
       if (value) heard.hidden = true;
     },
     setPeer(text) {
@@ -125,6 +191,7 @@ export function callBar({ role, onMute, onHangup, onInterrupt, onLeave }) {
     peerText: (state) => PEER_TEXT[state] ?? state,
     destroy() {
       clearInterval(tick);
+      waveform.stop();
       remoteAudio.srcObject = null;
       el.remove();
     },

@@ -180,6 +180,7 @@ export function createCustomerCallController({
     if (role === "agent") {
       const wasPresent = agentPresent;
       agentPresent = present;
+      bar.setAgentConnected(present);
       if (present) {
         bar.setState("active", "En llamada con un asesor");
         bar.setPeer("Audio con el asesor: conectando…");
@@ -215,6 +216,16 @@ export function createCustomerCallController({
     begin,
     get active() {
       return active;
+    },
+    /**
+     * La conversación cambió de estado (evento del WebSocket de eventos). Si pasó
+     * de la IA a un asesor durante la llamada, la barra lo anuncia con su
+     * transición (una vez) y actualiza su texto.
+     */
+    conversationStatusChanged(previous, next) {
+      if (!bar || !session) return;
+      if (previous === "ai_active" && (next === "waiting_agent" || next === "agent_active")) bar.announceHandoff();
+      if (!agentPresent && previous !== next) bar.setState("active", activeText());
     },
     /** Salir de la vista con una llamada abierta: se cuelga (no queda el micrófono encendido). */
     dispose() {

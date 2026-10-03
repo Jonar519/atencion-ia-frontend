@@ -3,15 +3,19 @@
  * superficie plana con regla de color a la izquierda; el estado va escrito
  * (el color nunca es la única pista). Contraste medido de los pares nuevos:
  * blanco sobre red-700 7.57:1 · ink-900/navy-100 12.29:1 · green-800/surface 5.89:1.
+ *
+ * Fase 7 (D1): la barra de una llamada usa la superficie EN VIVO (oscura) y el
+ * acento en vivo (cian = llamada en curso, menta = asesor conectado). Pares
+ * medidos en tests/contrast.test.js; el acento no se usa fuera de este archivo.
  */
 
 .btn--danger {
-  background: var(--color-red-700);
-  border-color: var(--color-red-700);
-  color: #fff;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--color-on-primary);
 }
 .btn--danger:hover {
-  background: #7d2318;
+  background: var(--color-danger-hover);
 }
 .btn--call::before {
   content: "📞 ";
@@ -71,13 +75,18 @@
   border-bottom: 1px solid var(--color-border);
 }
 .callbar {
+  position: relative;
   display: grid;
   gap: var(--space-2);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-left: var(--rule) solid var(--color-green-800);
+  background: var(--color-live-surface);
+  color: var(--color-on-live-surface);
+  border: 1px solid var(--color-border-strong);
+  border-left: var(--rule) solid var(--color-live-call);
   border-radius: var(--radius);
   padding: var(--space-3) var(--space-4);
+}
+.callbar[data-live="agent"] {
+  border-left-color: var(--color-live-agent);
 }
 .callbar[data-state="connecting"],
 .callbar[data-state="reconnecting"],
@@ -85,7 +94,72 @@
   border-left-color: var(--color-amber-600);
 }
 .callbar[data-state="ended"] {
-  border-left-color: var(--color-ink-500);
+  border-left-color: var(--color-on-live-surface-muted);
+}
+
+/* Insignia "en vivo": TEXTO sobre relleno de acento (navy sobre cian 8,33:1, sobre menta 6,70:1). */
+.callbar__live {
+  justify-self: start;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-live-call);
+  color: var(--color-on-live);
+}
+.callbar__live[data-live="agent"] {
+  background: var(--color-live-agent);
+}
+
+/* Forma de onda (canvas): lo que se ve; el <meter> queda para lectores de pantalla. */
+.waveform {
+  width: 15rem;
+  height: 2.25rem;
+  max-width: 100%;
+}
+
+/*
+ * LA ÚNICA ANIMACIÓN DEL SISTEMA: cuando la conversación pasa de la IA a un
+ * asesor durante la llamada, un barrido de color (menta) recorre el borde una
+ * vez. Con prefers-reduced-motion no se anima: el borde cambia de color al instante.
+ */
+.callbar--handoff::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 3px;
+  pointer-events: none;
+  /* Mitad menta, mitad transparente: al mover el fondo, el menta "llena" el borde de izquierda a derecha. */
+  background: linear-gradient(90deg, var(--color-live-agent) 50%, transparent 50%) no-repeat;
+  background-size: 200% 100%;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  animation: callbar-handoff 1.4s ease-in-out 1 both;
+}
+.callbar[data-handoff="done"] {
+  border-color: var(--color-live-agent);
+}
+@keyframes callbar-handoff {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .callbar--handoff::after {
+    animation: none;
+    display: none;
+  }
 }
 .callbar__head {
   display: flex;
@@ -95,7 +169,7 @@
 }
 .callbar__timer {
   font-variant-numeric: tabular-nums;
-  color: var(--color-ink-500);
+  color: var(--color-on-live-surface-muted);
 }
 .callbar__mic {
   display: flex;
@@ -107,18 +181,22 @@
   margin: 0;
   font-weight: 400;
 }
-.callbar__meter {
-  width: 10rem;
-}
 .callbar__heard {
   font-weight: 600;
-  color: var(--color-green-800);
+  color: var(--color-live-call);
 }
 .callbar__hint,
 .callbar__peer {
   margin: 0;
   font-size: var(--fs-sm);
-  color: var(--color-ink-500);
+  color: var(--color-on-live-surface-muted);
+}
+.callbar__head {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.callbar__mic label {
+  color: var(--color-on-live-surface-muted);
 }
 .callbar__partial {
   margin: 0;

@@ -78,6 +78,8 @@ export function createAgentCallController({
       bar.setState("connecting", STATE_TEXT.connecting);
       bar.setSpeaking(false);
       bar.setPeer("Audio con el cliente: esperando al cliente…");
+      // En el panel, quien está en la llamada ES el asesor: la insignia lo dice (menta).
+      bar.setAgentConnected(true);
 
       const voiceSession = makeSession({
         role: "agent",
