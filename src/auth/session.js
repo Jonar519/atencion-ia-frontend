@@ -16,6 +16,7 @@
  * Usa fetch directo (no api/http.js) para no crear un ciclo: http.js llama a
  * refresh() cuando recibe un 401.
  */
+import { apiUrl } from "../api/base.js";
 
 export const CSRF_HEADERS = { "X-Requested-With": "atencion-ia" };
 const REFRESH_MARGIN_MS = 60_000;
@@ -84,9 +85,10 @@ function endLocal(reason) {
 }
 
 async function post(path, body) {
-  return fetch(`/api/auth/${path}`, {
+  // La API está en otro origen del mismo sitio: "include" para mandar y recibir la cookie de refresh.
+  return fetch(apiUrl(`/api/auth/${path}`), {
     method: "POST",
-    credentials: "same-origin",
+    credentials: "include",
     headers: { ...CSRF_HEADERS, ...(body ? { "Content-Type": "application/json" } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });

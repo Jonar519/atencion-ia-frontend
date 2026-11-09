@@ -1,8 +1,11 @@
 import { CSRF_HEADERS, getAccessToken, refresh } from "../auth/session.js";
+import { apiUrl } from "./base.js";
 
 /**
- * Cliente HTTP de la app. La API está en el MISMO origen (proxy de Vite en
- * desarrollo), así que las cookies de sesión viajan con credentials: "same-origin".
+ * Cliente HTTP de la app. La API está en OTRO origen del mismo sitio
+ * (VITE_API_URL, api/base.js): las cookies de sesión (SameSite=Strict) viajan
+ * con credentials: "include", y la API solo las acepta de los orígenes de su
+ * CORS_ORIGIN (con Access-Control-Allow-Credentials).
  *
  *  - Siempre envía el encabezado anti-CSRF: el backend lo exige a toda
  *    escritura autenticada con cookie (widget del cliente, /refresh).
@@ -42,7 +45,7 @@ async function fetchOnce(path, init, timeoutMs, responseType = "json") {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(path, { ...init, signal: controller.signal });
+    const response = await fetch(apiUrl(path), { ...init, signal: controller.signal });
     const isJson = (response.headers.get("content-type") || "").includes("application/json");
     // "blob": imágenes (avatar). Un error de la API sigue llegando como JSON.
     if (responseType === "blob" && response.ok) return { response, data: await response.blob() };
@@ -81,7 +84,7 @@ export async function request(
   const init = {
     method,
     headers,
-    credentials: "same-origin",
+    credentials: "include",
     body: raw ? raw.data : body !== undefined ? JSON.stringify(body) : undefined,
   };
 
