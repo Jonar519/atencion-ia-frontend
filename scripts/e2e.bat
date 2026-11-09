@@ -56,8 +56,11 @@ start "atencion-ia-e2e-worker" /min cmd /c "set WORKER_METRICS_PORT=9466&& node 
 popd
 
 echo === 3/5 Frontend: build y vite preview en 4175 ===
+REM La API queda en OTRO origen (4101) que la app (4175), como en produccion.
+set VITE_API_URL=http://localhost:4101
 call npm run build || goto :fallo
-start "atencion-ia-e2e-frontend" /min cmd /c "set VITE_BACKEND_URL=http://localhost:4101&& npx vite preview --port 4175 --strictPort"
+set VITE_API_URL=
+start "atencion-ia-e2e-frontend" /min cmd /c "npx vite preview --port 4175 --strictPort"
 
 echo === 4/5 Esperando a que todo responda ===
 set /a INTENTOS=0

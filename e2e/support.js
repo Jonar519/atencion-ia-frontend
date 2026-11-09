@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminAccessToken } from "./adminSession.js";
+import { adminAccessToken, e2eApi } from "./adminSession.js";
 import { invitationToken } from "./outbox.js";
 
 /** Contraseña de los agentes que crea cada corrida (solo existen en la base de pruebas). */
@@ -18,12 +18,12 @@ export async function createAgent(request, label) {
   const accessToken = adminAccessToken();
   const email = `e2e-${Date.now().toString(36)}-${label}@e2e.example`;
   const name = `Asesora ${label}`;
-  const invited = await request.post("/api/staff/invitations", {
+  const invited = await request.post(e2eApi("/api/staff/invitations"), {
     headers: { Authorization: `Bearer ${accessToken}` },
     data: { name, email, role: "agent", maxConcurrent: 3 },
   });
   expect(invited.status(), await invited.text()).toBe(201);
-  const accepted = await request.post("/api/auth/invitation/accept", {
+  const accepted = await request.post(e2eApi("/api/auth/invitation/accept"), {
     headers: { "X-Requested-With": "atencion-ia" },
     data: { token: invitationToken(email), password: AGENT_PASSWORD },
   });

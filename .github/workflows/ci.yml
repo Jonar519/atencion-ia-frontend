@@ -121,9 +121,10 @@ jobs:
           WORKER_METRICS_PORT=9466 nohup node dist/workers/worker.js > ../worker.log 2>&1 &
           for i in $(seq 1 30); do curl -sf http://localhost:4101/ready && exit 0; sleep 1; done
           cat ../api.log; exit 1
-      - name: Build del frontend y vite preview (proxy a esa API)
+      # La API queda en OTRO origen (4101) que la app (4175), como en producción.
+      - name: Build del frontend (VITE_API_URL a esa API) y vite preview
         env:
-          VITE_BACKEND_URL: http://localhost:4101
+          VITE_API_URL: http://localhost:4101
         run: |
           npm ci
           npm run build
