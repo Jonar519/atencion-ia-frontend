@@ -664,6 +664,73 @@ const MUTATIONS = [
     from: "    --color-on-primary-accent: #f6d08a;",
     to: "    --color-on-primary-accent: #f3c774;",
   },
+  // API en otro origen (VITE_API_URL): app en atencion.<dominio>, API en api-atencion.<dominio>.
+  {
+    name: "ORIGEN: las peticiones de la app vuelven a credentials same-origin (la cookie del widget no viaja)",
+    file: "src/api/http.js",
+    from: '    credentials: "include",',
+    to: '    credentials: "same-origin",',
+  },
+  {
+    name: "ORIGEN: login/refresh vuelven a credentials same-origin (la cookie de refresh no viaja)",
+    file: "src/auth/session.js",
+    from: '    credentials: "include",',
+    to: '    credentials: "same-origin",',
+  },
+  {
+    name: "ORIGEN: las peticiones REST vuelven a rutas relativas (irían al origen de la app)",
+    file: "src/api/http.js",
+    from: "await fetch(apiUrl(path), {",
+    to: "await fetch(path, {",
+  },
+  {
+    name: "ORIGEN: el WebSocket del chat se arma con location.host",
+    file: "src/realtime/socket.js",
+    from: 'return wsUrl("/ws", apiOrigin);',
+    to: 'return `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws`;',
+  },
+  {
+    name: "ORIGEN: el WebSocket de voz se arma con location.host",
+    file: "src/voice/voiceSession.js",
+    from: 'return wsUrl("/ws/voice", apiOrigin);',
+    to: 'return `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws/voice`;',
+  },
+  {
+    name: "ORIGEN: https en la API pero ws:// (sin TLS) en los sockets",
+    file: "src/api/apiOrigin.js",
+    from: 'url.protocol === "https:" ? "wss:" : "ws:"',
+    to: '"ws:"',
+  },
+  {
+    name: "CSP: connect-src ya no incluye el origen de la API (la app no podría hablarle)",
+    file: "scripts/csp.js",
+    from: "`connect-src 'self' ${apiOrigin} ${webSocketOrigin(apiOrigin)}`",
+    to: "\"connect-src 'self'\"",
+  },
+  {
+    name: "CSP: connect-src abierto a cualquier https (no solo la API)",
+    file: "scripts/csp.js",
+    from: "`connect-src 'self' ${apiOrigin} ${webSocketOrigin(apiOrigin)}`",
+    to: "`connect-src 'self' https: wss:`",
+  },
+  {
+    name: "VERCEL: un build sin VITE_API_URL pasa (apuntaría en silencio a localhost)",
+    file: "scripts/csp.js",
+    from: "  if (onVercel && !rawApiUrl) throw",
+    to: "  if (false) throw",
+  },
+  {
+    name: "VERCEL: un build con la API en http:// pasa",
+    file: "scripts/csp.js",
+    from: '  if (onVercel && !origin.startsWith("https://")) throw',
+    to: "  if (false) throw",
+  },
+  {
+    name: "VITE_API_URL acepta una ruta (las rutas /api/… quedarían duplicadas)",
+    file: "src/api/apiOrigin.js",
+    from: 'if (url.pathname !== "/" || url.search',
+    to: "if (url.search",
+  },
 ];
 
 function runTests() {
