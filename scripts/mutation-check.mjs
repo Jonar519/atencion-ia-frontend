@@ -70,6 +70,31 @@ const MUTATIONS = [
     from: 'target.pathname.startsWith("/api/") || ',
     to: "",
   },
+  // Despliegue en Vercel (vercel.json).
+  {
+    name: "VERCEL: sin frame-ancestors en la cabecera (clickjacking: en <meta> no funciona)",
+    file: "vercel.json",
+    from: `{ "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" },`,
+    to: "",
+  },
+  {
+    name: "VERCEL: el micrófono queda abierto a cualquier iframe",
+    file: "vercel.json",
+    from: "microphone=(self)",
+    to: "microphone=*",
+  },
+  {
+    name: "VERCEL: el Service Worker se cachea (los clientes quedarían pegados a un build viejo)",
+    file: "vercel.json",
+    from: "service-worker\\\\.js|",
+    to: "",
+  },
+  {
+    name: "VERCEL: los assets con hash dejan de ser inmutables",
+    file: "vercel.json",
+    from: "public, max-age=31536000, immutable",
+    to: "public, max-age=3600",
+  },
   {
     name: "El panel sigue mostrando un caso que otro asesor tomó",
     file: "src/views/agent/panel.view.js",
