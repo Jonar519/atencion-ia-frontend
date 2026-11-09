@@ -1,3 +1,4 @@
+import { API_URL, wsUrl } from "../api/base.js";
 import { backoffDelay } from "../lib/backoff.js";
 import { createAudioPlayer } from "./audioPlayer.js";
 import { createPeerLink } from "./peerLink.js";
@@ -34,8 +35,9 @@ export const VOICE_CLOSE = {
 
 const MAX_RECONNECT_MS = 12_000;
 
-export function voiceSocketUrl(location = window.location) {
-  return `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws/voice`;
+/** wss://<origen de VITE_API_URL>/ws/voice (nunca location.host: la API está en otro origen). */
+export function voiceSocketUrl(apiOrigin = API_URL) {
+  return wsUrl("/ws/voice", apiOrigin);
 }
 
 const ENDED_TEXT = {
