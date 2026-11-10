@@ -1,3 +1,4 @@
+import { API_URL, wsUrl } from "../api/base.js";
 import { backoffDelay } from "../lib/backoff.js";
 
 /**
@@ -17,8 +18,9 @@ import { backoffDelay } from "../lib/backoff.js";
 export const CLOSE_TOKEN_EXPIRED = 4409;
 export const CLOSE_UNAUTHORIZED = 4401;
 
-export function webSocketUrl(location = window.location) {
-  return `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws`;
+/** wss://<origen de VITE_API_URL>/ws (nunca location.host: la API está en otro origen). */
+export function webSocketUrl(apiOrigin = API_URL) {
+  return wsUrl("/ws", apiOrigin);
 }
 
 /**

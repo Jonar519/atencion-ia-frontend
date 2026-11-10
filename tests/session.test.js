@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as session from "../src/auth/session.js";
 import { api, SESSION_EXPIRED } from "../src/api/http.js";
+import { API_URL } from "../src/api/base.js";
+
+/** La API está en otro origen: toda URL de fetch es absoluta (VITE_API_URL). */
+const at = (path) => `${API_URL}${path}`;
 
 /** JWT falso con exp: el navegador no verifica la firma (eso lo hace la API). */
 function fakeJwt(expSecondsFromNow = 900, sub = "a1") {
@@ -43,15 +47,24 @@ describe("sesión del staff: el token vive SOLO en memoria", () => {
     expect(document.cookie).not.toContain(token);
   });
 
-  it("login envía el encabezado anti-CSRF y la cookie (same-origin)", async () => {
+  it("login va al origen de la API con el encabezado anti-CSRF y la cookie (include: otro origen)", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(json(200, { accessToken: fakeJwt(), staff: STAFF }));
     await session.login("laura@cordillera.example", "x");
     const [url, init] = fetchSpy.mock.calls[0];
-    expect(url).toBe("/api/auth/login");
+    expect(url).toBe(at("/api/auth/login"));
     expect(init.headers["X-Requested-With"]).toBe("atencion-ia");
-    expect(init.credentials).toBe("same-origin");
+    expect(init.credentials).toBe("include");
+  });
+
+  it("las peticiones de la app van al origen de la API con credentials include", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(json(200, { ok: true }));
+    await api.get("/api/widget/session");
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(url).toBe(at("/api/widget/session"));
+    expect(init.credentials).toBe("include");
+    expect(init.headers["X-Requested-With"]).toBe("atencion-ia");
   });
 
   it("credenciales incorrectas muestran el mensaje del servidor", async () => {
@@ -68,7 +81,7 @@ describe("renovación single-flight", () => {
     const newToken = fakeJwt(1800);
     let refreshes = 0;
     vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
-      if (url === "/api/auth/refresh") {
+      if (url === at("/api/auth/refresh")) {
         refreshes += 1;
         await new Promise((resolve) => setTimeout(resolve, 20));
         return json(200, { accessToken: newToken, staff: STAFF });
@@ -80,7 +93,7 @@ describe("renovación single-flight", () => {
 
     const results = await Promise.all(["/api/a", "/api/b", "/api/c"].map((path) => api.get(path, { auth: "staff" })));
     expect(refreshes).toBe(1);
-    expect(results.map((r) => r.ok)).toEqual(["/api/a", "/api/b", "/api/c"]);
+    expect(results.map((r) => r.ok)).toEqual(["/api/a", "/api/b", "/api/c"].map(at));
     expect(session.getAccessToken()).toBe(newToken);
   });
 
@@ -93,7 +106,7 @@ describe("renovación single-flight", () => {
         : json(200, { accessToken: fakeJwt(), staff: STAFF });
     });
     expect(await session.refresh()).toEqual(expect.any(String));
-    expect(calls).toEqual(["/api/auth/refresh", "/api/auth/refresh"]);
+    expect(calls).toEqual([at("/api/auth/refresh"), at("/api/auth/refresh")]);
   });
 
   it("si la renovación falla, la sesión local se cierra y la petición informa 'sesión expirada'", async () => {
@@ -102,7 +115,9 @@ describe("renovación single-flight", () => {
     const changes = [];
     session.onSessionChange((change) => changes.push(change.reason));
     vi.spyOn(globalThis, "fetch").mockImplementation(async (url) =>
-      url === "/api/auth/refresh" ? json(401, { error: "La sesión expiró" }) : json(401, { error: "Token inválido" })
+      url === at("/api/auth/refresh")
+        ? json(401, { error: "La sesión expiró" })
+        : json(401, { error: "Token inválido" })
     );
     await expect(api.get("/api/conversations", { auth: "staff" })).rejects.toThrow(SESSION_EXPIRED);
     expect(session.getAccessToken()).toBeNull();
@@ -117,7 +132,7 @@ describe("renovación single-flight", () => {
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(json(200, { accessToken: fakeJwt(900), staff: STAFF }));
     await vi.advanceTimersByTimeAsync(61_000);
-    expect(fetchSpy).toHaveBeenCalledWith("/api/auth/refresh", expect.anything());
+    expect(fetchSpy).toHaveBeenCalledWith(at("/api/auth/refresh"), expect.anything());
   });
 
   it("logout avisa a las demás pestañas", async () => {

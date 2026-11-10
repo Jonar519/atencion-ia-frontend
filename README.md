@@ -68,21 +68,25 @@ Abre `http://localhost:5174`.
 
 Con el cliente en una pestaña y el agente en otra, los mensajes aparecen en ambas sin recargar.
 
-Si el backend está en otro puerto: `copy .env.example .env` y cambia `VITE_BACKEND_URL`.
+La app habla con la API en **su propio origen** (sin proxy, igual que en producción): por defecto
+`http://localhost:4100`. Si el backend está en otro puerto: `copy .env.example .env` y cambia
+`VITE_API_URL` (solo el origen, sin ruta). El backend debe tener el origen de la app en
+`CORS_ORIGIN` (por defecto `http://localhost:5174`; para `npm run preview` agrega
+`http://localhost:4174`, separado por coma).
 
 ## Scripts
 
-| Comando                  | Qué hace                                                                  |
-| ------------------------ | ------------------------------------------------------------------------- |
-| `npm run dev`            | Servidor de desarrollo en 5174, con proxy de `/api` y `/ws` al backend    |
-| `npm run build`          | Build de producción en `dist\` (incluye `service-worker.js` generado)     |
-| `npm run preview`        | Sirve `dist\` en 4174 (con el mismo proxy): así se prueba el SW de verdad |
-| `npm test`               | Tests (Vitest + jsdom)                                                    |
-| `npm run test:mutations` | Rompe a propósito cada regla crítica y exige que algún test falle         |
-| `npm run lint`           | ESLint + Prettier (`npm run format` corrige el formato)                   |
-| `scripts\verify.bat`     | lint → tests → build, deteniéndose en el primer fallo                     |
-| `scripts\e2e.bat`        | E2E completo en un entorno aislado ([e2e/README.md](e2e/README.md))       |
-| `npm run test:e2e`       | Solo Playwright (con el entorno ya levantado)                             |
+| Comando                  | Qué hace                                                              |
+| ------------------------ | --------------------------------------------------------------------- |
+| `npm run dev`            | Servidor de desarrollo en 5174 (la API en `VITE_API_URL`)             |
+| `npm run build`          | Build de producción en `dist\` (incluye `service-worker.js` generado) |
+| `npm run preview`        | Sirve `dist\` en 4174: así se prueba el SW y la CSP de verdad         |
+| `npm test`               | Tests (Vitest + jsdom)                                                |
+| `npm run test:mutations` | Rompe a propósito cada regla crítica y exige que algún test falle     |
+| `npm run lint`           | ESLint + Prettier (`npm run format` corrige el formato)               |
+| `scripts\verify.bat`     | lint → tests → build, deteniéndose en el primer fallo                 |
+| `scripts\e2e.bat`        | E2E completo en un entorno aislado ([e2e/README.md](e2e/README.md))   |
+| `npm run test:e2e`       | Solo Playwright (con el entorno ya levantado)                         |
 
 ## Arquitectura
 
@@ -124,8 +128,13 @@ src/
 - **Cliente**: la sesión del widget es una cookie httpOnly `atencion_ia_widget` (`SameSite=Strict`).
   El token `wgt_…` nunca llega al JavaScript; las escrituras llevan `X-Requested-With: atencion-ia`
   (CSRF), igual que el refresh del agente.
-- **Mismo origen**: Vite reenvía `/api` y `/ws` al backend, así que las cookies funcionan sin CORS
-  y la CSP del `index.html` puede ser `'self'` (`connect-src 'self'`).
+- **API en otro origen** (`VITE_API_URL`, `src/api/base.js`): la app (`atencion.<dominio>`) y la
+  API (`api-atencion.<dominio>`) son orígenes distintos del **mismo sitio**, así que las cookies
+  `SameSite=Strict` viajan. Todo `fetch` usa `credentials: "include"` y la API responde con CORS
+  con credenciales solo a los orígenes de su `CORS_ORIGIN`. Los WebSockets de chat y de voz se
+  arman desde `VITE_API_URL` (`wss://…/ws`, `wss://…/ws/voice`), nunca desde `location.host`.
+  La CSP del build permite en `connect-src` solo `'self'` y ese origen (https y wss). El Service
+  Worker no intercepta nada de otro origen: la API nunca pasa por su caché.
 
 ### Tiempo real
 

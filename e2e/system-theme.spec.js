@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { SEED_ADMIN, adminAccessToken, freshAdminCode } from "./adminSession.js";
+import { SEED_ADMIN, adminAccessToken, e2eApi, freshAdminCode } from "./adminSession.js";
 import { invitationToken } from "./outbox.js";
 import { createAgent, expectAccessible, loginAsAgent, sendCustomerMessage, startCustomerChat } from "./support.js";
 
@@ -57,7 +57,7 @@ test("todas las pantallas siguen el tema del sistema (claro y oscuro) y cambian 
 
   // "Completa tu cuenta" con una invitación REAL (se lee del correo simulado; no se completa).
   const email = `tema-${Date.now().toString(36)}@e2e.example`;
-  const invited = await request.post("/api/staff/invitations", {
+  const invited = await request.post(e2eApi("/api/staff/invitations"), {
     headers: { Authorization: `Bearer ${adminAccessToken()}` },
     data: { name: "Invitada Tema", email, role: "agent" },
   });

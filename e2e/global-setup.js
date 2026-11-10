@@ -35,7 +35,7 @@ function wav(samples, sampleRate) {
   return Buffer.concat([header, data]);
 }
 
-export default async function globalSetup(config) {
+export default async function globalSetup() {
   const rate = 48_000;
   const samples = [];
   const syllables = [180, 240, 210, 300, 160, 260, 220, 190];
@@ -51,7 +51,7 @@ export default async function globalSetup(config) {
   fs.mkdirSync(path.dirname(FAKE_MIC_WAV), { recursive: true });
   fs.writeFileSync(FAKE_MIC_WAV, wav(samples, rate));
 
-  // Admin del seed con verificación en dos pasos (Fase 7): un solo login para toda la corrida.
-  const baseURL = config?.projects?.[0]?.use?.baseURL || process.env.E2E_BASE_URL || "http://localhost:4175";
-  await saveAdminSession(baseURL);
+  // Admin del seed con verificación en dos pasos (Fase 7): un solo login para toda la corrida,
+  // directo contra la API (E2E_API_URL), que está en otro origen que la app.
+  await saveAdminSession();
 }

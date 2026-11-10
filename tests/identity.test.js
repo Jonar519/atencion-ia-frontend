@@ -8,6 +8,7 @@ import { clampOffset, coverScale, zoomAround } from "../src/components/avatarCro
 import { describeUserAgent } from "../src/lib/userAgent.js";
 import { initials } from "../src/components/avatar.js";
 import { HttpError } from "../src/api/http.js";
+import { API_URL } from "../src/api/base.js";
 import { flush } from "./support/fakeWebSocket.js";
 
 function json(status, body) {
@@ -50,7 +51,7 @@ describe("sesión: login en pasos", () => {
     expect(result).toEqual({ staff: STAFF, backupCodesRemaining: 3 });
     expect(session.getStaff()).toEqual(STAFF);
     const [url, init] = fetch.mock.calls[0];
-    expect(url).toBe("/api/auth/mfa/verify");
+    expect(url).toBe(`${API_URL}/api/auth/mfa/verify`);
     expect(JSON.parse(init.body)).toEqual({ challengeToken: "c".repeat(43), code: "abcd-2345" });
   });
 

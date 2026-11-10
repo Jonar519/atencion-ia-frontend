@@ -14,6 +14,15 @@ import { fileURLToPath } from "node:url";
  * (15 min) se guarda para las pruebas.
  */
 export const SEED_ADMIN = { email: "admin@cordillera.example", password: "Password123!" };
+
+/**
+ * La API del E2E, en SU propio origen (como en producción: la app en un origen,
+ * la API en otro). El build del frontend apunta aquí con VITE_API_URL.
+ */
+export const E2E_API_URL = process.env.E2E_API_URL || "http://localhost:4101";
+
+/** "/api/…" → URL absoluta de la API del E2E (las llamadas directas de las pruebas). */
+export const e2eApi = (path) => new URL(path, E2E_API_URL).href;
 export const ADMIN_SESSION_FILE = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   ".generated",
@@ -47,8 +56,8 @@ export function totp(secret, timeMs = Date.now()) {
   return String(binary).padStart(6, "0");
 }
 
-async function post(baseURL, url, body) {
-  const res = await fetch(new URL(url, baseURL), {
+async function post(url, body) {
+  const res = await fetch(e2eApi(url), {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Requested-With": "atencion-ia" },
     body: JSON.stringify(body),
@@ -58,8 +67,8 @@ async function post(baseURL, url, body) {
   return data;
 }
 
-export async function loginSeedAdmin(baseURL) {
-  const first = await post(baseURL, "/api/auth/login", SEED_ADMIN);
+export async function loginSeedAdmin() {
+  const first = await post("/api/auth/login", SEED_ADMIN);
   if (first.accessToken) return { accessToken: first.accessToken };
   if (first.mfaRequired) {
     throw new Error(
@@ -67,9 +76,9 @@ export async function loginSeedAdmin(baseURL) {
         "(npm run staff:reset-mfa -- admin@cordillera.example con DATABASE_URL de la base E2E)."
     );
   }
-  const { secret } = await post(baseURL, "/api/auth/mfa/enroll/start", { enrollmentToken: first.enrollmentToken });
+  const { secret } = await post("/api/auth/mfa/enroll/start", { enrollmentToken: first.enrollmentToken });
   const now = Date.now();
-  const done = await post(baseURL, "/api/auth/mfa/enroll/confirm", {
+  const done = await post("/api/auth/mfa/enroll/confirm", {
     enrollmentToken: first.enrollmentToken,
     code: totp(secret, now),
   });
@@ -77,8 +86,8 @@ export async function loginSeedAdmin(baseURL) {
   return { accessToken: done.accessToken, secret, usedStep: Math.floor(now / 30_000) };
 }
 
-export async function saveAdminSession(baseURL) {
-  const session = await loginSeedAdmin(baseURL);
+export async function saveAdminSession() {
+  const session = await loginSeedAdmin();
   fs.mkdirSync(path.dirname(ADMIN_SESSION_FILE), { recursive: true });
   fs.writeFileSync(ADMIN_SESSION_FILE, JSON.stringify(session));
 }
