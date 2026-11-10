@@ -181,6 +181,20 @@ en el build y **falla** si no encuentra la declaración exacta que debe reemplaz
 Todo el texto (mensajes de clientes, de la IA, nombres) entra al DOM como nodo de texto vía
 `h()`. ESLint prohíbe `innerHTML`, `outerHTML` e `insertAdjacentHTML`.
 
+## Despliegue (Vercel)
+
+[`vercel.json`](vercel.json): `npm ci` + `npm run build`, salida `dist`. El router es por hash, así
+que no hay rewrites. Lo sujetan `tests/vercel.test.js` y 4 mutaciones.
+
+- Cabeceras en toda respuesta: `Content-Security-Policy: frame-ancestors 'none'` (en `<meta>` no
+  funciona; la política completa sigue en el `<meta>` del build), `X-Frame-Options: DENY`,
+  `nosniff`, `Referrer-Policy`, HSTS, COOP `same-origin` y `Permissions-Policy` con el micrófono
+  solo para la propia app (llamadas de voz).
+- Caché: `/assets/*` inmutable por un año; `/`, `index.html`, `service-worker.js`, `offline.html`
+  y `offline.css` con `no-cache`.
+- Ninguna URL ni secreto en el repo: `VITE_API_URL` se define en el proyecto de Vercel (el build
+  falla si falta o no es https).
+
 ## Tests
 
 `npm test`: 388 tests en 22 archivos — render seguro, sesión (memoria, single-flight, reintento,
