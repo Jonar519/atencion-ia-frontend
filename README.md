@@ -1,57 +1,107 @@
-# atencion-ia-frontend
+# atencion-ia-frontend: la aplicación web de Atención IA
 
-SPA de **Atención al cliente omnicanal con IA**, con dos superficies:
+**Producción:** <https://atencion.jonarproyectos.com>
 
-- **Widget de cliente** (`#/chat`): chat de texto con la IA; si la IA escala (fraude, cliente
-  molesto, pide un humano…), el mismo chat pasa a un asesor en tiempo real.
-- **Panel de agente** (`#/agente`): cola priorizada, historial completo (con la intención y el
-  sentimiento que detectó la IA) **antes** de tomar el caso, tomar, responder y cerrar.
+Este repositorio es la parte visible de **Atención IA**: el widget del cliente, el panel de los
+asesores y la administración. La **guía completa para evaluar el proyecto** (acceso, roles y la
+prueba de cada función paso a paso) está en el README principal, en
+[atencion-ia-backend](https://github.com/Jonar519/atencion-ia-backend#readme). Aquí se explica lo
+propio del frontend.
 
-**Voz** (Fase 6, punto 1): el cliente llama desde el widget tras aceptar el aviso de
-consentimiento; el asesor se une desde el panel y hablan por WebRTC. Guía para probarlo con tu
-micrófono: [docs/prueba-voz.md](docs/prueba-voz.md).
+## Contenido
 
-**Fase 7** (identidad profesional y evolución visual): cuenta del asesor (recuperar contraseña,
-verificación en dos pasos, sesiones activas y perfil con foto), toda la app en el tema claro u oscuro del sistema operativo, administración por rol
-(base de conocimiento, respuestas predefinidas, equipo y analítica), adjuntos en el chat, la llamada
-"en vivo" (forma de onda y transición de color) y estados de carga, error, vacío y conectividad.
-Bloque F: alta de asesores SOLO por invitación ("Completa tu cuenta"), menú de usuario con "Mi
-perfil" y "Salir" en todas las pantallas del staff, y una portada nueva.
-Recorrido paso a paso: `atencion-ia-backend/docs/demo-fase7.md`.
+1. [Qué es](#1-qué-es)
+2. [Cómo funciona](#2-cómo-funciona)
+3. [Tecnologías](#3-tecnologías)
+4. [Qué se necesita](#4-qué-se-necesita)
+5. [Acceso y roles](#5-acceso-y-roles)
+6. [Guía de pruebas](#6-guía-de-pruebas)
+7. [Pruebas automatizadas](#7-pruebas-automatizadas)
+8. [Limitaciones y decisiones de diseño](#8-limitaciones-y-decisiones-de-diseño)
+9. [Solución de problemas](#9-solución-de-problemas)
+10. [Estructura del repositorio](#10-estructura-del-repositorio)
+11. [Glosario](#11-glosario)
 
-## Estado por fase
+## 1. Qué es
 
-| Fase  | Contenido                                                                                                       | Estado |
-| ----- | --------------------------------------------------------------------------------------------------------------- | ------ |
-| 4     | Widget de texto, panel de agente, WebSocket, Web Worker, Service Worker, diseño                                 | ✅     |
-| 5     | Panel: estado de la llamada, turnos de voz marcados y transcripción EN VIVO del caso abierto                    | ✅     |
-| 6     | UI de voz: llamar con consentimiento, micrófono, respuesta en audio, unirse con WebRTC real                     | ✅     |
-| 6     | E2E con Playwright (texto y voz) y GitHub Actions                                                               | ✅     |
-| 7     | Identidad: navy/ámbar, tema del sistema (claro/oscuro), cuenta del asesor (recuperación, MFA, sesiones, perfil) | ✅     |
-| 7     | Administración por rol: base de conocimiento, respuestas predefinidas, equipo y analítica (SVG)                 | ✅     |
-| 7     | Adjuntos en el chat (imagen y PDF), con vista previa antes de enviar y E2E propio                               | ✅     |
-| 7     | Llamada en vivo (forma de onda, una sola animación) y estados de carga/error/vacío/conexión                     | ✅     |
-| 7 (F) | Alta solo por invitación (Equipo + "Completa tu cuenta"); menú de usuario; recuperación bajo "Entrar"           | ✅     |
-| 7 (F) | Portada nueva (fragmento de conversación con la regla de color real) y tema del sistema en TODAS las pantallas  | ✅     |
+Una aplicación de una sola página (SPA) escrita en **JavaScript sin framework**, que habla con la API
+de [atencion-ia-backend](https://github.com/Jonar519/atencion-ia-backend). Tiene tres superficies:
 
-## Stack
+- **Widget del cliente** (`#/chat`): chat de texto y llamada de voz con el asistente de IA, adjuntos
+  y, si el caso escala, la conversación con un asesor en tiempo real.
+- **Panel de asesores** (`#/agente`): cola priorizada que se actualiza sola, historial antes de tomar
+  el caso, respuestas, adjuntos, cierre, unión a llamadas por WebRTC y perfil de la cuenta.
+- **Administración** (`#/admin/...`, solo administradores): base de conocimiento, respuestas
+  predefinidas, equipo e invitaciones, y analítica con gráficos.
 
-JavaScript sin framework + Vite 7 · router propio por hash · WebSocket nativo · **Web Worker
-real** (clasificación local de urgencia mientras el cliente escribe) · **Service Worker real**
-(shell offline; nunca cachea la API) · Vitest 4 + jsdom · ESLint + Prettier.
+## 2. Cómo funciona
 
-## Relación con los otros repositorios
+La app es un conjunto de archivos estáticos (HTML, CSS y JavaScript) que Vercel sirve. Todo dato
+viene de la API (`VITE_API_URL`) por `fetch`, y los cambios en vivo llegan por WebSocket. Un
+**router por hash** decide qué pantalla mostrar según lo que va después de `#` en la dirección:
 
-| Repositorio            | Relación                                                                                                   |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `atencion-ia-backend`  | Única dependencia en ejecución: API REST (`/api`) y WebSocket (`/ws`), con `AI_PROVIDER=mock` por defecto. |
-| `atencion-ia-database` | Indirecta: el backend necesita la base migrada y con seed para probar a mano.                              |
+| Ruta                                                                         | Pantalla                                                              | Quién                      |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------- |
+| `#/`                                                                         | Portada                                                               | Cualquiera                 |
+| `#/chat`                                                                     | Widget del cliente (chat y llamada)                                   | Cualquiera (sin cuenta)    |
+| `#/agente/login`                                                             | Inicio de sesión del equipo                                           | Cualquiera                 |
+| `#/agente/recuperar` · `#/agente/restablecer`                                | Pedir y usar el enlace para cambiar la contraseña                     | Cualquiera (con el enlace) |
+| `#/agente/confirmar-correo`                                                  | Confirmar un cambio de correo                                         | Con el enlace del correo   |
+| `#/agente/invitacion`                                                        | Completar una cuenta invitada                                         | Con el enlace del correo   |
+| `#/agente`                                                                   | Panel: cola, mis casos, conversación y llamada                        | Asesor y administrador     |
+| `#/agente/perfil`                                                            | Mi perfil (datos, foto, correo, contraseña, MFA, sesiones, mis datos) | Asesor y administrador     |
+| `#/admin/kb` · `#/admin/respuestas` · `#/admin/equipo` · `#/admin/analytics` | Administración                                                        | Solo administrador         |
 
-Los tests de este repo **no** necesitan el backend: simulan `fetch` y el WebSocket.
+```mermaid
+flowchart LR
+  U["Navegador"] --> R["Router por hash<br/>(src/router.js)"]
+  R --> V["Vistas<br/>(src/views)"]
+  V --> H["api/http.js<br/>fetch + CSRF + renovación de sesión"]
+  V --> S["realtime/socket.js<br/>WebSocket con reconexión"]
+  V --> VO["voice/<br/>micrófono, AudioWorklet, WebRTC"]
+  V --> WK["Web Worker<br/>urgencia mientras se escribe"]
+  H --> API["API (atencion-ia-backend)"]
+  S --> API
+  VO --> API
+  SW["Service Worker<br/>(shell sin conexión)"] -.-> U
+```
 
-## Primera vez (Windows, cmd.exe)
+Puntos clave (detalle en [docs/referencia-tecnica.md](docs/referencia-tecnica.md)):
 
-Requisitos: Node.js 20+ y el backend corriendo en `http://localhost:4100` (ver su README).
+- **Sesión del asesor:** el token de acceso vive solo en memoria; al recargar se renueva con una
+  cookie httpOnly. Cerrar sesión en una pestaña la cierra en las demás.
+- **Sesión del cliente:** una cookie httpOnly que el JavaScript no puede leer.
+- **Tiempo real solo de recepción:** se envía por REST (sin duplicados, gracias a un id por mensaje)
+  y se recibe por WebSocket; al reconectar, se vuelve a pedir el historial.
+- **XSS:** todo texto entra al DOM como nodo de texto; ESLint prohíbe `innerHTML`.
+- **Voz:** el micrófono se pide antes de crear la llamada, se envía audio de 16 kHz en tramas de
+  100 ms y el micrófono se apaga siempre al terminar.
+
+## 3. Tecnologías
+
+Versiones del `package.json` (rangos declarados):
+
+| Tecnología                                                            | Versión            | Para qué se usa                                                                              | Por qué se eligió                                                       |
+| --------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **JavaScript** (módulos ES), HTML y CSS                               | —                  | Toda la app, sin framework                                                                   | El curso evalúa DOM, eventos y asincronía de forma directa.             |
+| **Vite**                                                              | ^7.3.7             | Servidor de desarrollo y build de producción                                                 | Arranque rápido y build con nombres con hash para la caché.             |
+| **Web Workers**, **AudioWorklet**, **WebRTC**, **Canvas 2D**, **SVG** | APIs del navegador | Urgencia en segundo plano, captura de audio, llamada con el asesor, forma de onda y gráficos | APIs nativas, sin dependencias.                                         |
+| **Service Worker**                                                    | API del navegador  | Carga sin conexión del shell (nunca la API)                                                  | La app abre aunque falle la red, sin guardar datos personales.          |
+| **@fontsource** (Inter, Source Serif 4)                               | ^5.3.0             | Tipografías servidas desde la propia app                                                     | Sin pedir fuentes a terceros (lo exige la CSP).                         |
+| **Vitest** + **jsdom**                                                | ^4.1.12 · ^29.1.1  | Tests unitarios y de componentes                                                             | Mismo motor de pruebas que el backend.                                  |
+| **Playwright** + **axe**                                              | ^1.63.0 · ^4.13.0  | E2E en Chromium contra el sistema completo y accesibilidad                                   | Prueba el flujo real, incluida la voz con un micrófono simulado.        |
+| **ESLint** · **Prettier**                                             | ^10.11.0 · ^3.9.9  | Reglas y formato                                                                             | Prohíben `innerHTML` y otras puertas de XSS.                            |
+| **Vercel**                                                            | —                  | Hospeda los archivos estáticos con HTTPS y cabeceras de seguridad                            | Despliegue desde `main`; configuración en [`vercel.json`](vercel.json). |
+| **GitHub Actions** · **gitleaks**                                     | gitleaks `v8.21.2` | CI: lint, tests, mutaciones, build, E2E, `npm audit` y secretos                              | Nada llega a `main` sin pasar las pruebas.                              |
+
+## 4. Qué se necesita
+
+- **Para evaluarlo en producción:** solo un navegador actualizado (Chrome, Edge o Firefox) y, para
+  la voz, micrófono y altavoces. Ver
+  [Qué necesita el profesor](https://github.com/Jonar519/atencion-ia-backend#4-qué-necesita-el-profesor).
+- **Para correrlo en local:** Node.js 20 o superior (la CI usa 24) y la API corriendo en
+  `http://localhost:4100` (base de datos y backend:
+  [opción local](https://github.com/Jonar519/atencion-ia-backend#b-opción-local-opcional)). Luego:
 
 ```bat
 cd atencion-ia-frontend
@@ -59,176 +109,118 @@ npm install
 npm run dev
 ```
 
-Abre `http://localhost:5174`.
+Esperado: `Local: http://localhost:5174/`. Ábrelo y verás la portada. La app usa la API de
+`VITE_API_URL` (por defecto `http://localhost:4100`); si la API está en otro puerto,
+`copy .env.example .env` y cambia ese valor (solo el origen, sin ruta), por ejemplo:
 
-- **Cliente**: "Soy cliente" → tu nombre (opcional) → chatea. Prueba "no reconozco un cargo de
-  $450.000" para ver el aviso local de urgencia y el traspaso a un asesor.
-- **Agente**: "Soy asesor" → `laura@cordillera.example` / `Password123!` (cuentas del seed; ver
-  el README de `atencion-ia-database`).
-
-Con el cliente en una pestaña y el agente en otra, los mensajes aparecen en ambas sin recargar.
-
-La app habla con la API en **su propio origen** (sin proxy, igual que en producción): por defecto
-`http://localhost:4100`. Si el backend está en otro puerto: `copy .env.example .env` y cambia
-`VITE_API_URL` (solo el origen, sin ruta). El backend debe tener el origen de la app en
-`CORS_ORIGIN` (por defecto `http://localhost:5174`; para `npm run preview` agrega
-`http://localhost:4174`, separado por coma).
-
-## Scripts
-
-| Comando                  | Qué hace                                                              |
-| ------------------------ | --------------------------------------------------------------------- |
-| `npm run dev`            | Servidor de desarrollo en 5174 (la API en `VITE_API_URL`)             |
-| `npm run build`          | Build de producción en `dist\` (incluye `service-worker.js` generado) |
-| `npm run preview`        | Sirve `dist\` en 4174: así se prueba el SW y la CSP de verdad         |
-| `npm test`               | Tests (Vitest + jsdom)                                                |
-| `npm run test:mutations` | Rompe a propósito cada regla crítica y exige que algún test falle     |
-| `npm run lint`           | ESLint + Prettier (`npm run format` corrige el formato)               |
-| `scripts\verify.bat`     | lint → tests → build, deteniéndose en el primer fallo                 |
-| `scripts\e2e.bat`        | E2E completo en un entorno aislado ([e2e/README.md](e2e/README.md))   |
-| `npm run test:e2e`       | Solo Playwright (con el entorno ya levantado)                         |
-
-## Arquitectura
-
-```
-src/
-  main.js                  arranque: rutas (app.js), aviso de conectividad, Service Worker
-  app.js                   rutas: #/ · #/chat · #/agente/login · #/agente · #/agente/perfil ·
-                           #/agente/recuperar · /restablecer · /confirmar-correo · /invitacion ·
-                           #/admin/* (solo admin)
-  router.js                router por hash; cada vista devuelve una función de limpieza
-  auth/session.js          access token EN MEMORIA; refresh single-flight; logout entre pestañas
-  api/http.js              fetch + CSRF + un reintento tras renovar ante un 401
-  api/widget.js · staff.js endpoints del cliente y del panel; profile.js y admin.js (Fase 7)
-  realtime/socket.js       WebSocket: auth en el primer mensaje, backoff + jitter, resync, 4409
-  chat/messageStore.js     mensajes por id del servidor, sin duplicar los optimistas (clientMsgId)
-  urgency/                 clasificador local + cliente del Worker (descarta respuestas viejas)
-  workers/urgency.worker.js
-  sw/                      estrategia (función pura), Service Worker y registro
-  voice/                   llamada: pcm (16 kHz), AudioWorklet, micrófono, reproductor, WebRTC,
-                           sesión del socket de voz, y los controladores del cliente y del asesor
-  views/                   landing, chat del cliente, login, panel, perfil, recuperación,
-                           invitación ("Completa tu cuenta") y admin/*
-  components/              lista de mensajes, avisos, conexión; Fase 7: states.js (cargando/error/
-                           vacío), connectivity.js, waveform.js, barChart.js, adjuntos, avatar,
-                           userMenu.js (Mi perfil / Salir), mfaEnrollment.js (login e invitación)…
-  lib/                     dom.js, sendQueue.js (orden de envío), attachments.js, priority.js…
-  lib/dom.js               h(): crea nodos; el texto SIEMPRE como nodo de texto
-  styles/                  tokens.css (sistema de diseño; oscuro = el del sistema, en CSS) · base · chat · panel ·
-                           voice · admin · profile · attachments
+```ini
+VITE_API_URL=http://localhost:4100
 ```
 
-### Sesiones: nada sensible al alcance de JavaScript persistente
+Para probar el build con el Service Worker y la CSP reales: `npm run build` y `npm run preview`
+(puerto 4174; la API debe tener `http://localhost:4174` en `CORS_ORIGIN`).
 
-- **Agente**: el access token vive solo en una variable del módulo (nunca `localStorage` ni
-  `sessionStorage`). Al recargar, `restore()` pide uno nuevo con la cookie httpOnly de refresh.
-  Si varias peticiones reciben 401 a la vez, se hace **un solo** `/refresh` (single-flight).
-  Cerrar sesión en una pestaña la cierra en las demás (`BroadcastChannel`), y si en otra pestaña
-  entra una cuenta distinta, el panel se recarga en vez de seguir mostrando al usuario anterior.
-- **Cliente**: la sesión del widget es una cookie httpOnly `atencion_ia_widget` (`SameSite=Strict`).
-  El token `wgt_…` nunca llega al JavaScript; las escrituras llevan `X-Requested-With: atencion-ia`
-  (CSRF), igual que el refresh del agente.
-- **API en otro origen** (`VITE_API_URL`, `src/api/base.js`): la app (`atencion.<dominio>`) y la
-  API (`api-atencion.<dominio>`) son orígenes distintos del **mismo sitio**, así que las cookies
-  `SameSite=Strict` viajan. Todo `fetch` usa `credentials: "include"` y la API responde con CORS
-  con credenciales solo a los orígenes de su `CORS_ORIGIN`. Los WebSockets de chat y de voz se
-  arman desde `VITE_API_URL` (`wss://…/ws`, `wss://…/ws/voice`), nunca desde `location.host`.
-  La CSP del build permite en `connect-src` solo `'self'` y ese origen (https y wss). El Service
-  Worker no intercepta nada de otro origen: la API nunca pasa por su caché.
+## 5. Acceso y roles
 
-### Tiempo real
+El cliente entra sin cuenta (**Soy cliente → Iniciar chat**). Asesores y administradores entran con
+correo y contraseña; las cuentas solo se crean por invitación y el administrador debe usar
+verificación en dos pasos. Las credenciales las entrega el estudiante por un canal privado. Todo el
+detalle (roles, invitaciones de 72 horas, MFA, qué hacer si falla):
+[Acceso y roles](https://github.com/Jonar519/atencion-ia-backend#5-acceso-y-roles).
 
-El WebSocket es **solo de recepción**: los envíos van por REST (idempotentes por `clientMsgId`).
-Al conectar, el cliente se autentica en el primer mensaje (el token no viaja en la URL). Si la
-conexión cae, reintenta con backoff exponencial y jitter (1 s → 30 s); al reconectar **vuelve a
-pedir el historial** por REST, porque lo publicado mientras estaba desconectado no se reenvía.
-Con cierre 4409 (token vencido) el panel renueva el token antes de reconectar.
+## 6. Guía de pruebas
 
-### Web Worker de urgencia
+La guía función por función, con pasos y resultado esperado, está en el README principal:
+[Guía de pruebas](https://github.com/Jonar519/atencion-ia-backend#6-guía-de-pruebas-función-por-función).
+Qué pantallas de este repositorio cubre cada bloque:
 
-Mientras el cliente escribe, `urgency.worker.js` clasifica el texto localmente (fraude, pide
-asesor, molestia) y el chat muestra un aviso ("Esto se ve urgente…"). **No decide nada**: el
-servidor clasifica cada turno con la IA y aplica sus propias reglas. Manipular este código solo
-cambia lo que ve el cliente. Las respuestas que llegan fuera de orden se descartan.
+| Bloque de la guía                  | Pantallas                                                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------ |
+| A. Portada y apariencia            | `#/` y el tema del sistema en todas                                                              |
+| B. El cliente y el asistente de IA | `#/chat`                                                                                         |
+| C. Panel del asesor y tiempo real  | `#/agente`                                                                                       |
+| D. Llamada de voz                  | `#/chat` (barra de llamada) y `#/agente` (Unirse a la llamada)                                   |
+| E. Cuenta del asesor               | `#/agente/perfil`, `#/agente/recuperar`, `#/agente/restablecer`, `#/agente/confirmar-correo`     |
+| F. Administración                  | `#/admin/kb`, `#/admin/respuestas`, `#/admin/equipo`, `#/admin/analytics`, `#/agente/invitacion` |
+| G. Robustez y seguridad            | Avisos de conexión, Service Worker, almacenamiento del navegador                                 |
 
-### Service Worker
+## 7. Pruebas automatizadas
 
-Estrategia en `src/sw/strategy.js` (función pura, con tests): **nunca** intercepta `/api`, `/ws`,
-otros orígenes ni métodos distintos de GET (las conversaciones son datos personales y no se
-guardan en Cache Storage). Navegaciones → `index.html` con revalidación, u `offline.html` sin red.
-`/assets/*` (nombres con hash) → cache-first. `scripts/sw-build.js` inyecta la lista de precache
-en el build y **falla** si no encuentra la declaración exacta que debe reemplazar.
+| Comando                  | Qué cubre                                                                                                                                                                        | Resultado esperado                               |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `npm test`               | Render seguro (XSS), sesión, WebSocket con reconexión, chat, panel, voz, Service Worker, administración, estados de la interfaz y contraste WCAG medido sobre los colores reales | `Tests 416 passed (416)` en 24 archivos.         |
+| `npm run test:mutations` | Rompe a propósito 124 reglas críticas (token en `sessionStorage`, texto como HTML, micrófono que no se apaga…) y exige que algún test falle                                      | `124/124 mutaciones detectadas.`                 |
+| `npm run lint`           | ESLint y Prettier                                                                                                                                                                | Sin errores.                                     |
+| `scripts\verify.bat`     | lint → tests → build, en ese orden                                                                                                                                               | Termina sin errores.                             |
+| `scripts\e2e.bat`        | Seis escenarios de Playwright en un entorno aislado: texto, voz con WebRTC, adjuntos, invitación, tema del sistema y API en otro origen (con axe y sin violaciones de CSP)       | Todos en verde ([e2e/README.md](e2e/README.md)). |
 
-### Voz
+Los tests de `npm test` no necesitan el backend: simulan `fetch` y el WebSocket. El E2E sí levanta
+todo (base de datos, API, worker y frontend) en puertos aparte. La CI corre todo en cada `push`.
 
-- **Consentimiento primero:** el aviso vigente viene del backend y "Aceptar y llamar" está
-  deshabilitado hasta marcar "Leí y acepto". Se envía la versión mostrada.
-- **Micrófono antes que la llamada:** si el permiso se niega, no se crea ninguna llamada (ni el
-  asesor toma el caso).
-- **Captura:** un AudioWorklet baja el micrófono a PCM16 mono de 16 kHz, en tramas de 100 ms
-  (~32 KB/s, lo que el servidor admite en tiempo real).
-- **Qué se envía:** solo después de `ready`, nunca silenciado, y **no mientras habla el
-  asistente** (su voz no debe transcribirse como del cliente). "Interrumpir" lo corta.
-- **WebRTC entre cliente y asesor:** solo el asesor ofrece; los candidatos ICE se guardan hasta
-  tener la descripción remota. El audio va de navegador a navegador.
-- **El micrófono se apaga siempre:** al colgar, cuando el servidor termina la llamada, al salir de
-  la vista o si otra pestaña toma la llamada. En este último caso **no reconecta**: si lo hiciera,
-  las pestañas se la quitarían una a otra sin fin.
-- **Micrófono desconectado:** si se desconecta a mitad de la llamada, se avisa.
+## 8. Limitaciones y decisiones de diseño
 
-### XSS
+- **Sin framework y sin selector de tema:** a propósito. El tema claro u oscuro lo decide el sistema
+  operativo, en CSS.
+- **Almacenamiento mínimo en el navegador:** ningún token ni conversación en `localStorage`; solo el
+  shell de la app en la caché del Service Worker.
+- **El aviso de urgencia no decide nada:** el Web Worker solo muestra un aviso; el servidor clasifica
+  cada mensaje y aplica sus reglas.
+- **Voz entre redes distintas:** sin servidor TURN configurado, el audio directo entre cliente y
+  asesor solo conecta en el mismo equipo o red (ver las
+  [limitaciones del proyecto](https://github.com/Jonar519/atencion-ia-backend#8-limitaciones-conocidas-y-decisiones-de-diseño)).
+- **Navegadores:** probado de forma automática en Chromium (Playwright); Chrome, Edge y Firefox de
+  escritorio actualizados son los recomendados.
 
-Todo el texto (mensajes de clientes, de la IA, nombres) entra al DOM como nodo de texto vía
-`h()`. ESLint prohíbe `innerHTML`, `outerHTML` e `insertAdjacentHTML`.
+## 9. Solución de problemas
 
-## Despliegue (Vercel)
+| Síntoma                                               | Qué hacer                                                                                                                                   |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Desconectado" o "Reconectando…" que no se va         | La API no responde o la red bloquea WebSockets. En local, revisa que la API corra en `VITE_API_URL`.                                        |
+| La app muestra una versión vieja después de un cambio | El Service Worker sirve el shell anterior: recarga con Ctrl+F5 o cierra y abre la pestaña.                                                  |
+| Local: errores de CORS en la consola                  | El origen de la app no está en `CORS_ORIGIN` del backend (`http://localhost:5174`; para `npm run preview`, agrega `http://localhost:4174`). |
+| El build de Vercel falla por `VITE_API_URL`           | En Vercel la variable es obligatoria y debe ser `https://` (sin ruta). En local, el build usa `http://localhost:4100` si no la defines.     |
+| No se puede llamar: permiso del micrófono             | Candado de la barra de direcciones → **Micrófono → Permitir** y recarga.                                                                    |
 
-[`vercel.json`](vercel.json): `npm ci` + `npm run build`, salida `dist`. El router es por hash, así
-que no hay rewrites. Lo sujetan `tests/vercel.test.js` y 4 mutaciones.
+Más síntomas del proyecto completo:
+[Solución de problemas](https://github.com/Jonar519/atencion-ia-backend#9-solución-de-problemas).
 
-- Cabeceras en toda respuesta: `Content-Security-Policy: frame-ancestors 'none'` (en `<meta>` no
-  funciona; la política completa sigue en el `<meta>` del build), `X-Frame-Options: DENY`,
-  `nosniff`, `Referrer-Policy`, HSTS, COOP `same-origin` y `Permissions-Policy` con el micrófono
-  solo para la propia app (llamadas de voz).
-- Caché: `/assets/*` inmutable por un año; `/`, `index.html`, `service-worker.js`, `offline.html`
-  y `offline.css` con `no-cache`.
-- Ninguna URL ni secreto en el repo: `VITE_API_URL` se define en el proyecto de Vercel (el build
-  falla si falta o no es https).
+## 10. Estructura del repositorio
 
-## Tests
+```
+atencion-ia-frontend/
+├── index.html · public/        # documento base, página sin conexión y favicon
+├── src/
+│   ├── main.js · app.js        # arranque y registro de rutas
+│   ├── router.js               # router por hash con guardas por rol
+│   ├── auth/                   # sesión del asesor (token en memoria, renovación)
+│   ├── api/                    # fetch con CSRF y los endpoints del widget, el panel y la administración
+│   ├── realtime/               # WebSocket con reconexión y resincronización
+│   ├── chat/                   # almacén de mensajes sin duplicados
+│   ├── voice/                  # micrófono, AudioWorklet, reproducción, WebRTC y sesión de voz
+│   ├── urgency/ · workers/     # clasificador local de urgencia y su Web Worker
+│   ├── sw/                     # Service Worker y su estrategia de caché
+│   ├── views/                  # pantallas: portada, chat, login, panel, perfil, recuperación, invitación, admin
+│   ├── components/             # piezas reutilizables: estados, conectividad, forma de onda, gráficos, adjuntos, menú
+│   ├── lib/                    # utilidades: creación segura de nodos (dom.js), adjuntos, prioridad
+│   └── styles/                 # sistema de diseño (tokens.css) y estilos por pantalla
+├── tests/                      # Vitest + jsdom
+├── e2e/                        # Playwright
+├── scripts/                    # verify, e2e, build del Service Worker, CSP, mutaciones
+├── docs/                       # referencia técnica, sistema de diseño, prueba de voz
+├── vite.config.js · vercel.json
+└── package.json
+```
 
-`npm test`: 388 tests en 22 archivos — render seguro, sesión (memoria, single-flight, reintento,
-logout entre pestañas), WebSocket (auth, reconexión con backoff, resync, 4409, cierre limpio),
-store de mensajes, Worker de urgencia, Service Worker (incluye cargar el SW generado), chat del
-cliente (envío, recepción, reintento con el mismo `clientMsgId`, aislamiento por conversación) y
-panel (cola en vivo, historial antes de tomar, tomar/cerrar, caso tomado por otro, cambio de cuenta,
-estado de la llamada y transcripción en vivo solo del caso abierto, como texto). Fase 7: identidad
-(MFA, recuperación, sesiones, foto), guardas por rol y vistas de administración, adjuntos, llamada
-en vivo, estados de la interfaz y **contraste WCAG medido sobre los valores reales de los tokens**
-(`tests/contrast.test.js`, que además exige una sola animación en todo el CSS). Bloque F:
-invitaciones y Equipo, ningún registro público, menú de usuario (teclado y foco), portada
-(jerarquía, fragmento ilustrativo, micro-interacción sin animación) y el tema del sistema
-(`tests/systemTheme.test.js`: ningún selector, ninguna pantalla que se salga).
+## 11. Glosario
 
-**E2E** (`e2e/`, Playwright): cinco escenarios contra el stack real con IA y voz simuladas
-(detalle en [e2e/README.md](e2e/README.md)).
+| Término             | Qué significa aquí                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **SPA**             | Aplicación de una sola página: el navegador carga una vez y cambia de pantalla sin recargar.                |
+| **Router por hash** | Elige la pantalla según lo que va después de `#` en la dirección (`#/chat`, `#/agente`).                    |
+| **CSP**             | _Content Security Policy_: cabecera que limita de dónde puede cargar scripts y a qué servidores conectarse. |
+| **CORS**            | Reglas con las que la API acepta peticiones de la app, que está en otro origen.                             |
+| **AudioWorklet**    | Hilo de audio del navegador; aquí convierte el micrófono en tramas de 16 kHz.                               |
+| **WCAG**            | Pautas de accesibilidad; los tests miden el contraste de los colores contra ellas.                          |
 
-- **Flujo de texto:** RAG → escalamiento → cola en tiempo real → tomar, responder y cerrar. Incluye
-  axe, 0 violaciones de CSP y ningún token en el almacenamiento.
-- **Llamada de voz:** micrófono falso de Chromium → transcripción → escalamiento → el asesor se une
-  con WebRTC conectado; la forma de onda pinta el audio y el borde cambia de color UNA vez.
-- **Adjuntos:** el cliente envía un PDF y una foto, el asesor los ve en vivo y responde con un
-  adjunto; 0 violaciones de CSP y axe.
-- **Invitación:** el admin invita desde Equipo → el correo simulado → la asesora completa su cuenta →
-  el enlace no sirve dos veces → inicia sesión.
-- **Tema del sistema:** las 13 pantallas en claro y en oscuro (fondo y axe en cada una) y el cambio
-  en vivo sin recargar.
-
-**CI** (`.github/workflows/ci.yml`): lint, tests, mutaciones y build; `npm audit` y gitleaks; y el
-E2E completo (Postgres y Redis de servicio, backend y base de sus repos, build y `vite preview`).
-
-`npm run test:mutations`: 109/109 reglas críticas rotas a propósito son detectadas.
-
-La verificación en vivo (dos pestañas, reconexión real, base de prueba aparte) está en
-[docs/fase4-verificacion.md](docs/fase4-verificacion.md). El sistema de diseño, en
-[docs/design-system.md](docs/design-system.md).
+El glosario completo (RAG, WebSocket, WebRTC, MFA…) está en el
+[README principal](https://github.com/Jonar519/atencion-ia-backend#11-glosario).
